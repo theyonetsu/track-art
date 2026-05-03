@@ -43,12 +43,66 @@ export class PhotosService {
     return results;
   }
 
+  /** Public endpoint — watermark only; original URL if unlocked. */
   async findByGallery(galleryId: string) {
-    return this.prisma.photo.findMany({ where: { galleryId }, orderBy: { createdAt: 'asc' } });
+    const photos = await this.prisma.photo.findMany({
+      where: { galleryId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return Promise.all(
+      photos.map(async (photo) => {
+        const watermarkUrl = await this.storage.getSignedUrl(photo.watermarkKey);
+        const originalUrl = photo.unlocked
+          ? await this.storage.getSignedUrl(photo.originalKey)
+          : null;
+        return {
+          id: photo.id,
+          galleryId: photo.galleryId,
+          unlocked: photo.unlocked,
+          price: photo.price,
+          createdAt: photo.createdAt,
+          watermarkUrl,
+          originalUrl,
+        };
+      }),
+    );
+  }
+
+  /** Admin endpoint — all three URLs so the dashboard can display full previews. */
+  async findByGalleryAdmin(galleryId: string) {
+    const photos = await this.prisma.photo.findMany({
+      where: { galleryId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return Promise.all(
+      photos.map(async (photo) => {
+        const [previewUrl, watermarkUrl, originalUrl] = await Promise.all([
+          this.storage.getSignedUrl(photo.previewKey),
+          this.storage.getSignedUrl(photo.watermarkKey),
+          this.storage.getSignedUrl(photo.originalKey),
+        ]);
+        return {
+          id: photo.id,
+          galleryId: photo.galleryId,
+          unlocked: photo.unlocked,
+          price: photo.price,
+          createdAt: photo.createdAt,
+          previewUrl,
+          watermarkUrl,
+          originalUrl,
+        };
+      }),
+    );
   }
 
   async unlock(id: string) {
     return this.prisma.photo.update({ where: { id }, data: { unlocked: true } });
+  }
+
+  async updatePrice(id: string, price: number) {
+    return this.prisma.photo.update({ where: { id }, data: { price } });
   }
 
   async deleteWithStorage(id: string) {
@@ -60,9 +114,5 @@ export class PhotosService {
       this.storage.delete(photo.watermarkKey),
     ]);
     return this.prisma.photo.delete({ where: { id } });
-  }
-
-  async create(data: any) {
-    return this.prisma.photo.create({ data });
   }
 }

@@ -7,6 +7,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Shared admin input style */
+.input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input:focus {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.input::placeholder {
+  color: rgb(255 255 255 / 0.2);
+}
+.input option {
+  background: #111;
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-none {
   -ms-overflow-style: none;

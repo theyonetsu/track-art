@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 
@@ -23,6 +23,36 @@ export class GalleriesService {
       include: { photos: true },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async findById(id: string) {
+    const g = await this.prisma.gallery.findUnique({
+      where: { id },
+      include: { photos: true, extensions: true },
+    });
+    if (!g) throw new NotFoundException('Galerie introuvable');
+    return g;
+  }
+
+  async update(id: string, data: Partial<{
+    title: string;
+    maxSelection: number;
+    clientEmail: string;
+    clientPhone: string;
+    languages: string[];
+  }>) {
+    const g = await this.prisma.gallery.findUnique({ where: { id } });
+    if (!g) throw new NotFoundException('Galerie introuvable');
+    return this.prisma.gallery.update({ where: { id }, data });
+  }
+
+  async sendLink(id: string) {
+    const g = await this.prisma.gallery.findUnique({ where: { id } });
+    if (!g) throw new NotFoundException('Galerie introuvable');
+    if (!g.clientEmail) throw new BadRequestException('Aucun email client configuré sur cette galerie');
+    const url = `${process.env.APP_URL}/g/${g.slug}`;
+    await this.email.sendGalleryLink(g.clientEmail, g.title, url);
+    return { sent: true };
   }
 
   async findBySlug(slug: string) {
