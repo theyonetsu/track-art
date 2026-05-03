@@ -57,7 +57,7 @@ export default function Dashboard() {
                     {g.expiresAt && <p className="text-xs text-gray-600 mt-1">Expire: {new Date(g.expiresAt).toLocaleDateString("fr-FR")}</p>}
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => { navigator.clipboard.writeText(`http://localhost:3000/gallery/${g.slug}`); }} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Copier lien</button>
+                    <button onClick={() => { navigator.clipboard.writeText(`http://localhost:3000/g/${g.slug}`); }} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Copier lien</button>
                     <a href={`/admin/gallery/${g.id}`} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Gérer</a>
                     <button onClick={() => deleteGallery(g.id)} className="text-xs text-red-800 hover:text-red-400 tracking-widest uppercase transition-colors">Supprimer</button>
                   </div>
