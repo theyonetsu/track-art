@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  isAdmin     Boolean  @default(true)
+  totpSecret  String?
+  totpEnabled Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Settings {
+  id              String   @id @default(uuid())
+  extensionPrice  Int      @default(5)
+  extensionDays   Int      @default(7)
+  extraPhotoPrice Int      @default(2)
+  updatedAt       DateTime @updatedAt
+}
+
+model Gallery {
+  id            String      @id @default(uuid())
+  title         String
+  slug          String      @unique @default(uuid())
+  languages     String[]    @default(["fr"])
+  maxSelection  Int         @default(30)
+  firstOpenedAt DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime    @default(now())
+  photos        Photo[]
+  extensions    Extension[]
+  clientEmail   String?
+  clientPhone   String?
+}
+
+model Photo {
+  id           String   @id @default(uuid())
+  galleryId    String
+  originalKey  String
+  previewKey   String
+  watermarkKey String
+  unlocked     Boolean  @default(false)
+  price        Int      @default(2)
+  createdAt    DateTime @default(now())
+  gallery      Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+}
+
+model Extension {
+  id        String   @id @default(uuid())
+  galleryId String
+  days      Int      @default(7)
+  amount    Int      @default(5)
+  createdAt DateTime @default(now())
+  gallery   Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  galleryId String
+  type      String
+  amount    Int
+  status    String   @default("pending")
+  paypalId  String?
+  photoIds  String[]
+  createdAt DateTime @default(now())
+}
