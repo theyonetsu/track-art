@@ -35,6 +35,15 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - Textes de l'accueil réécrits (ton pro, bandeau 4 atouts, tarif « commission uniquement »). Classes `.btn/.input/.label` passées en `@layer components` (sinon elles écrasaient les utilitaires Tailwind).
 - Yonetsu a confirmé que les photos s'affichent bien dans Chrome.
 
+## Fait le 5 sept. (relief + animations, en autonomie)
+- Système de relief : ombres chaudes superposées (`--shadow-soft/lift/deep`), `.card` / `.card-hover` / `.tile`, boutons avec dégradé, lift au survol et état pressé, champs avec inset, header `.glass`, grain très léger (`.grain`).
+- Animations : `Reveal` (apparition au défilement, IntersectionObserver, avec stagger), `fade-up`, `slide-up` (drawer, barre d'action), `float`, respect de `prefers-reduced-motion`.
+- Accueil : `HeroStack` (collage de 3 tirages superposés, inclinaison 3D qui suit la souris, carte flottante), sections Fonctionnement / Exemples (maquette téléphone `PhoneMock`) / Atouts / Tarifs en cartes, header collant et footer (`SiteHeader`, `SiteFooter`). Tous les liens mènent quelque part : ancres, /contact, /mentions-legales, /confidentialite (textes avec crochets à remplir).
+- Galerie client : couverture avec la 1re photo floutée en fond, tuiles en relief, loupe au survol, lightbox avec flèches, clavier (← → Échap) et compteur, drawer et barre d'action animés.
+- Admin : cartes en relief, header verre, liste des galeries en cartes.
+- Inspiration : Pixieset (effet « ça a l'air cher » : couverture, sobriété, vitesse) + tendances 2026 (ombres douces, collage, scroll reveal, micro-interactions).
+- Limite connue : `/g/<slug-inconnu>` renvoie la page 404 mais avec un statut HTTP 200 (streaming dû à `loading.tsx`), sans impact utilisateur.
+
 ## Pas encore fait (par ordre de priorité)
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
 1b. Vérifier sur le PC (Chrome) que les images des galeries s'affichent (le navigateur intégré de Claude bloque le port 9000 de MinIO, donc non vérifiable depuis Cowork) : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.

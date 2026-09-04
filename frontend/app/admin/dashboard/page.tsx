@@ -77,8 +77,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-sand text-ink">
-      <header className="flex items-center justify-between px-6 md:px-20 py-7 border-b border-line">
+    <div className="min-h-screen bg-sand text-ink grain">
+      <header className="sticky top-0 z-30 glass flex items-center justify-between px-6 md:px-20 py-6 border-b border-line">
         <Logo href="/admin/dashboard" />
         <div className="flex items-center gap-8">
           <span className="label text-muted hidden sm:inline">Espace photographe</span>
@@ -87,7 +87,7 @@ export default function Dashboard() {
       </header>
 
       <div className="px-6 md:px-20 py-12 grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-12 lg:gap-20">
-        <aside className="flex flex-col gap-6">
+        <aside className="card p-8 flex flex-col gap-6 self-start lg:sticky lg:top-28">
           <div className="flex flex-col gap-2">
             <p className="label text-terracotta">Nouvelle galerie</p>
             <h2 className="font-serif text-3xl">Créer une galerie</h2>
@@ -118,12 +118,12 @@ export default function Dashboard() {
             </div>
           )}
 
-          <ul className="flex flex-col">
+          <ul className="flex flex-col gap-4 reveal-stagger is-visible">
             {galleries.map((g) => {
               const d = daysLeft(g.expiresAt);
               const unlocked = g.photos?.filter((p) => p.unlocked).length ?? 0;
               return (
-                <li key={g.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 py-6 border-b border-line items-center">
+                <li key={g.id} className="card card-hover grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 px-6 py-5 items-center">
                   <div className="flex flex-col gap-1.5 min-w-0">
                     <Link href={`/admin/gallery/${g.id}`} className="font-serif text-2xl hover:text-terracotta transition-colors truncate">{g.title}</Link>
                     <p className="text-sm text-muted">

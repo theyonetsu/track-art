@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Logo from "../../components/Logo";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -40,7 +41,7 @@ export default function AdminLogin() {
     <main className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:block photo-placeholder" style={{ background: "linear-gradient(160deg, #EAD4C2 0%, #C99B7F 50%, #9E6B52 100%)" }} />
       <div className="flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm flex flex-col gap-10 fade-up">
+        <div className="w-full max-w-sm card p-10 flex flex-col gap-10 fade-up">
           <div className="flex flex-col gap-3 items-center text-center">
             <Logo size="lg" />
             <p className="label text-muted">{step === "login" ? "Espace photographe" : "Vérification en deux étapes"}</p>
@@ -60,7 +61,8 @@ export default function AdminLogin() {
               <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">{loading ? "Vérification…" : "Vérifier"}</button>
             </form>
           )}
-          <p className="text-center text-sm text-muted">Pas encore de compte ? <span className="text-ink">[Inscription à venir]</span></p>
+          <p className="text-center text-sm text-muted">Pas encore de compte ? <Link href="/contact" className="text-ink link-underline hover:text-terracotta">Demander un accès</Link></p>
+          <Link href="/" className="text-center label text-muted hover:text-terracotta transition-colors">← Retour au site</Link>
         </div>
       </div>
     </main>

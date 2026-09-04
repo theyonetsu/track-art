@@ -90,6 +90,16 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
 
   const unlockedPhotos = photos.filter((p) => p.unlocked && p.originalUrl);
   const selectablePhotos = photos.filter((p) => !p.unlocked);
+  const coverUrl = photos[0]?.watermarkUrl ?? null;
+
+  // Navigation dans la lightbox (flèches + clavier)
+  const lightboxList = selectablePhotos.length ? selectablePhotos : photos;
+  const lightboxIndex = lightbox ? lightboxList.findIndex((p) => p.id === lightbox.id) : -1;
+  function stepLightbox(dir: 1 | -1) {
+    if (lightboxIndex < 0 || !lightboxList.length) return;
+    const next = (lightboxIndex + dir + lightboxList.length) % lightboxList.length;
+    setLightbox(lightboxList[next]);
+  }
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -117,10 +127,13 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
         setLightbox(null);
         setCheckoutOpen(false);
       }
+      if (e.key === 'ArrowRight') stepLightbox(1);
+      if (e.key === 'ArrowLeft') stepLightbox(-1);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxIndex, lightboxList.length]);
 
   const handlePaymentSuccess = useCallback(() => {
     setPaymentDone(true);
@@ -132,19 +145,30 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
   return (
     <div className="min-h-screen bg-sand text-ink select-none" onContextMenu={blockContext} onDragStart={blockContext}>
       {/* Header */}
-      <header className="max-w-7xl mx-auto px-5 pt-12 pb-4 flex flex-col items-center text-center gap-2 fade-up">
-        <span className="font-serif text-xs tracking-[0.32em] uppercase">
-          Track<span className="text-terracotta">.</span>Art
-        </span>
-        <h1 className="font-serif text-4xl md:text-5xl font-normal leading-tight mt-2">
-          {gallery.title}
-        </h1>
-        <p className="label text-muted">Votre sélection de photos</p>
+      {/* Couverture : la première photo en fond, floutée et voilée */}
+      <header className="relative overflow-hidden">
+        {coverUrl && (
+          <div
+            className="absolute inset-0 scale-110"
+            style={{ backgroundImage: `url("${coverUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(28px) saturate(0.9)', opacity: 0.55 }}
+            aria-hidden="true"
+          />
+        )}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(239,230,218,0.35) 0%, rgba(239,230,218,0.85) 70%, #EFE6DA 100%)' }} aria-hidden="true" />
+        <div className="relative max-w-7xl mx-auto px-5 pt-14 md:pt-20 pb-8 flex flex-col items-center text-center gap-3 fade-up">
+          <span className="font-serif text-xs tracking-[0.32em] uppercase">
+            Track<span className="text-terracotta">.</span>Art
+          </span>
+          <h1 className="font-serif text-4xl md:text-6xl font-normal leading-tight mt-2" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>
+            {gallery.title}
+          </h1>
+          <p className="label text-muted">Votre sélection de photos</p>
+        </div>
       </header>
 
       {/* Payment success banner */}
       {paymentDone && (
-        <div className="bg-terracotta text-sand text-center py-3 px-4">
+        <div className="bg-terracotta text-sand text-center py-3 px-4 fade-up">
           <p className="text-sm tracking-wide">
             Sélection confirmée — vos photos HD sont disponibles ci-dessous
           </p>
@@ -154,7 +178,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-5 pt-2 pb-40">
         {/* Compteur + expiration */}
-        <div className="mb-5 flex items-center justify-between gap-4 py-3 border-y border-line">
+        <div className="mb-6 flex items-center justify-between gap-4 px-5 py-4 card">
           <p className="text-sm">
             {selectedCount > 0
               ? `${includedCount} / ${includedRemaining} incluses${extraCount > 0 ? ` · ${extraCount} supplémentaire${extraCount > 1 ? 's' : ''}` : ''}`
@@ -175,9 +199,9 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
             <h2 className="font-serif text-2xl mb-4">
               Vos photos HD <span className="text-muted text-lg">({unlockedPhotos.length})</span>
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
               {unlockedPhotos.map((photo) => (
-                <div key={photo.id} className="relative group aspect-square overflow-hidden">
+                <div key={photo.id} className="relative group aspect-[4/5] overflow-hidden tile bg-sand-deep">
                   <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
                   <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <a
@@ -208,7 +232,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
             Toutes les photos sont déverrouillées
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
             {selectablePhotos.map((photo) => {
               const isSelected = selected.has(photo.id);
               const selectionIndex = selectedList.findIndex((p) => p.id === photo.id);
@@ -217,7 +241,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
               return (
                 <button
                   key={photo.id}
-                  className="relative aspect-[4/5] overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-terracotta cursor-pointer bg-sand-deep"
+                  className={`relative aspect-[4/5] overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-terracotta cursor-pointer bg-sand-deep tile ${isSelected ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-sand' : ''}`}
                   onClick={() => toggleSelect(photo.id)}
                   onDoubleClick={(e) => openLightbox(photo, e)}
                   aria-pressed={isSelected}
@@ -228,7 +252,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
 
                   {/* Selection overlay */}
                   {isSelected && (
-                    <div className="absolute inset-0 border-2 border-terracotta pointer-events-none" />
+                    <div className="absolute inset-0 pointer-events-none" style={{ boxShadow: 'inset 0 0 0 2px #9E4F37' }} />
                   )}
 
                   {/* Checkbox */}
@@ -251,6 +275,18 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
                     )}
                   </div>
 
+                  {/* Loupe : ouvre la lightbox sans changer la sélection */}
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    aria-label="Agrandir"
+                    data-select
+                    onClick={(e) => { e.stopPropagation(); setLightbox(photo); }}
+                    className="absolute bottom-2 right-2 w-8 h-8 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
+                  </span>
+
                   {/* Prix : affiché si la photo est un extra (ou au survol si le forfait est épuisé) */}
                   {(isExtra || (!isSelected && includedRemaining - selectedCount <= 0)) && photo.price > 0 && (
                     <div className={`absolute bottom-2 left-2 bg-sand/95 text-ink text-[11px] px-2 py-1 tracking-wide transition-opacity ${isExtra ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
@@ -266,7 +302,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
 
       {/* Sticky action bar */}
       {selectedCount > 0 && !checkoutOpen && (
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-sand/95 backdrop-blur border-t border-line">
+        <div className="fixed bottom-0 inset-x-0 z-40 glass border-t border-line slide-up" style={{ boxShadow: '0 -12px 40px -16px rgba(34,27,24,0.35)' }}>
           <div className="max-w-7xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
             <div>
               <p className="text-base font-medium">
@@ -313,9 +349,28 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
       {/* Lightbox */}
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center fade-in"
           onClick={() => setLightbox(null)}
         >
+          {lightboxList.length > 1 && (
+            <>
+              <button
+                className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors"
+                onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }}
+                aria-label="Photo précédente"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+              </button>
+              <button
+                className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors"
+                onClick={(e) => { e.stopPropagation(); stepLightbox(1); }}
+                aria-label="Photo suivante"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg>
+              </button>
+              <span className="absolute top-5 left-1/2 -translate-x-1/2 label text-sand/60">{lightboxIndex + 1} / {lightboxList.length}</span>
+            </>
+          )}
           <button
             className="absolute top-4 right-4 text-sand/70 hover:text-sand text-3xl leading-none"
             onClick={() => setLightbox(null)}
@@ -323,7 +378,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
           >
             ×
           </button>
-          <ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-[90vh] w-[90vw]" />
+          <div onClick={(e) => e.stopPropagation()} className="h-[82vh] w-[86vw] md:w-[80vw]"><ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-full w-full" /></div>
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             <button
               onClick={(e) => { e.stopPropagation(); toggleSelect(lightbox.id); setLightbox(null); }}
@@ -477,7 +532,7 @@ function CheckoutDrawer({
       />
 
       {/* Panel */}
-      <div className="relative bg-sand border-t border-line w-full max-h-[85vh] overflow-y-auto">
+      <div className="relative bg-sand border-t border-line w-full max-h-[85vh] overflow-y-auto slide-up" style={{ boxShadow: '0 -24px 60px -20px rgba(34,27,24,0.5)' }}>
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-0.5 bg-line rounded-full" />

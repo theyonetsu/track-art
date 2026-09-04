@@ -313,7 +313,7 @@ export default function AdminGalleryPage() {
   return (
     <div className="min-h-screen bg-sand text-ink">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-sand/95 backdrop-blur border-b border-line">
+      <header className="sticky top-0 z-30 glass border-b border-line">
         <div className="px-6 md:px-20 h-16 flex items-center gap-4">
           <Link
             href="/admin/dashboard"
@@ -546,7 +546,7 @@ export default function AdminGalleryPage() {
           )}
 
           {/* Photo grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 
             {/* Pending previews (uploading) */}
             {pendingPreviews.map((p) => (
@@ -620,7 +620,7 @@ function PhotoCard({
   onDelete,
 }: PhotoCardProps) {
   return (
-    <div className="relative aspect-square overflow-hidden group bg-sand-deep">
+    <div className="relative aspect-square overflow-hidden group bg-sand-deep tile">
       {/* Preview image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -685,7 +685,7 @@ function PhotoCard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-sand-deep/50 border border-line p-5 space-y-4">
+    <div className="card p-5 space-y-4">
       <h2 className="label text-terracotta pb-2 border-b border-line">
         {title}
       </h2>
