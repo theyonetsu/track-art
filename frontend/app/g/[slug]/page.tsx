@@ -28,11 +28,12 @@ export default async function GalleryPage({
 
   if ('expired' in gallery) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center space-y-4 px-8">
-          <p className="text-xs tracking-[0.3em] uppercase text-gray-500">Galerie expirée</p>
-          <h1 className="text-3xl font-thin tracking-widest">Cette galerie n&apos;est plus disponible</h1>
-          <p className="text-gray-600 text-sm">Contactez votre photographe pour obtenir une extension.</p>
+      <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6">
+        <div className="text-center flex flex-col items-center gap-5 max-w-md">
+          <p className="font-serif text-sm tracking-[0.32em] uppercase">Track<span className="text-terracotta">.</span>Art</p>
+          <p className="label text-terracotta">Galerie expirée</p>
+          <h1 className="font-serif text-5xl">Cette galerie n&apos;est plus disponible.</h1>
+          <p className="text-ink-soft">Contactez votre photographe pour obtenir une prolongation.</p>
         </div>
       </main>
     );

@@ -1,15 +1,36 @@
-﻿"use client";
-import { useEffect, useState } from "react";
+"use client";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Logo from "../../components/Logo";
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+type Gallery = {
+  id: string;
+  title: string;
+  slug: string;
+  maxSelection: number;
+  expiresAt: string | null;
+  createdAt: string;
+  clientEmail: string | null;
+  photos: { unlocked: boolean }[];
+};
+
+function daysLeft(d: string | null) {
+  if (!d) return null;
+  return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+}
+
 export default function Dashboard() {
-  const [galleries, setGalleries] = useState<any[]>([]);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [token, setToken] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
   const [maxSelection, setMaxSelection] = useState(30);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const router = useRouter();
-  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
   useEffect(() => {
     const t = localStorage.getItem("token") ?? "";
@@ -17,68 +38,113 @@ export default function Dashboard() {
     setToken(t);
   }, [router]);
 
-  useEffect(() => { if (token) fetchGalleries(); }, [token]);
-
-  async function fetchGalleries() {
+  const fetchGalleries = useCallback(async () => {
+    if (!token) return;
     try {
       const res = await fetch(`${API}/galleries`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 401) { router.replace("/admin/login"); return; }
       const data = await res.json();
       if (Array.isArray(data)) setGalleries(data);
     } catch (e) { console.error(e); }
-  }
-  async function createGallery(e: any) {
+  }, [token, router]);
+
+  useEffect(() => { fetchGalleries(); }, [fetchGalleries]);
+
+  async function createGallery(e: React.FormEvent) {
     e.preventDefault(); setLoading(true);
-    await fetch(`${API}/galleries`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ title, clientEmail: email, maxSelection, languages: ["fr"] }) });
-    setTitle(""); setEmail(""); setLoading(false); fetchGalleries();
+    try {
+      const res = await fetch(`${API}/galleries`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ title, clientEmail: email || null, maxSelection, languages: ["fr"] }) });
+      if (res.ok) {
+        const g = await res.json();
+        setTitle(""); setEmail("");
+        router.push(`/admin/gallery/${g.id}`);
+        return;
+      }
+      fetchGalleries();
+    } finally { setLoading(false); }
   }
-  async function deleteGallery(id: string) {
-    await fetch(`${API}/galleries/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+
+  async function deleteGallery(g: Gallery) {
+    if (!confirm(`Supprimer « ${g.title} » et toutes ses photos ?`)) return;
+    await fetch(`${API}/galleries/${g.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     fetchGalleries();
   }
+
+  function copyLink(g: Gallery) {
+    navigator.clipboard.writeText(`${window.location.origin}/g/${g.slug}`);
+    setCopied(g.id);
+    setTimeout(() => setCopied(null), 1800);
+  }
+
   return (
-    <main className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-2xl font-thin tracking-[0.3em] uppercase">Track.Art</h1>
-          <button onClick={() => { localStorage.removeItem("token"); router.push("/admin/login"); }} className="text-gray-500 text-xs tracking-widest uppercase hover:text-white transition-colors">Déconnexion</button>
+    <div className="min-h-screen bg-sand text-ink">
+      <header className="flex items-center justify-between px-6 md:px-20 py-7 border-b border-line">
+        <Logo href="/admin/dashboard" />
+        <div className="flex items-center gap-8">
+          <span className="label text-muted hidden sm:inline">Espace photographe</span>
+          <button onClick={() => { localStorage.removeItem("token"); router.push("/admin/login"); }} className="label hover:text-terracotta transition-colors">Déconnexion</button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="md:col-span-1">
-            <h2 className="text-xs tracking-widest uppercase text-gray-400 mb-6">Nouvelle galerie</h2>
-            <form onSubmit={createGallery} className="space-y-4">
-              <input type="text" placeholder="Nom de la galerie" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-transparent border border-gray-700 px-4 py-3 text-sm placeholder-gray-600 focus:border-white focus:outline-none" required />
-              <input type="email" placeholder="Email client" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-transparent border border-gray-700 px-4 py-3 text-sm placeholder-gray-600 focus:border-white focus:outline-none" />
-              <select value={maxSelection} onChange={e => setMaxSelection(Number(e.target.value))} className="w-full bg-black border border-gray-700 px-4 py-3 text-sm text-white focus:border-white focus:outline-none">
-                <option value={15}>15 photos incluses</option>
-                <option value={30}>30 photos incluses</option>
-                <option value={60}>60 photos incluses</option>
-              </select>
-              <button type="submit" disabled={loading} className="w-full border border-white py-3 text-sm tracking-widest uppercase hover:bg-white hover:text-black transition-all duration-300 disabled:opacity-50">{loading ? "Création..." : "Créer"}</button>
-            </form>
+      </header>
+
+      <div className="px-6 md:px-20 py-12 grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-12 lg:gap-20">
+        <aside className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <p className="label text-terracotta">Nouvelle galerie</p>
+            <h2 className="font-serif text-3xl">Créer une galerie</h2>
           </div>
-          <div className="md:col-span-2">
-            <h2 className="text-xs tracking-widest uppercase text-gray-400 mb-6">Galeries ({galleries.length})</h2>
-            <div className="space-y-3">
-              {galleries.length === 0 && <p className="text-gray-600 text-sm">Aucune galerie</p>}
-              {galleries.map((g: any) => (
-                <div key={g.id} className="border border-gray-800 p-4 flex justify-between items-center hover:border-gray-600 transition-colors">
-                  <div>
-                    <p className="text-sm font-medium">{g.title}</p>
-                    <p className="text-xs text-gray-500 mt-1">{g.photos?.length || 0} photos • {g.maxSelection} incluses</p>
-                    {g.expiresAt && <p className="text-xs text-gray-600 mt-1">Expire: {new Date(g.expiresAt).toLocaleDateString("fr-FR")}</p>}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/g/${g.slug}`); }} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Copier lien</button>
-                    <a href={`/admin/gallery/${g.id}`} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Gérer</a>
-                    <button onClick={() => deleteGallery(g.id)} className="text-xs text-red-800 hover:text-red-400 tracking-widest uppercase transition-colors">Supprimer</button>
-                  </div>
-                </div>
-              ))}
+          <form onSubmit={createGallery} className="flex flex-col gap-4">
+            <input type="text" placeholder="Nom de la galerie (ex. Léa & Thomas)" value={title} onChange={(e) => setTitle(e.target.value)} className="input" required />
+            <input type="email" placeholder="Email du client (optionnel)" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+            <select value={maxSelection} onChange={(e) => setMaxSelection(Number(e.target.value))} className="input">
+              <option value={15}>15 photos incluses</option>
+              <option value={30}>30 photos incluses</option>
+              <option value={60}>60 photos incluses</option>
+            </select>
+            <button type="submit" disabled={loading} className="btn btn-primary w-full mt-1">{loading ? "Création…" : "Créer la galerie"}</button>
+            <p className="text-sm text-muted">Vous ajouterez les photos à l’étape suivante.</p>
+          </form>
+        </aside>
+
+        <main className="flex flex-col gap-6">
+          <div className="flex items-baseline justify-between border-b border-line pb-4">
+            <h2 className="font-serif text-3xl">Vos galeries</h2>
+            <span className="label text-muted">{galleries.length} galerie{galleries.length > 1 ? "s" : ""}</span>
+          </div>
+
+          {galleries.length === 0 && (
+            <div className="py-20 text-center flex flex-col items-center gap-3">
+              <p className="font-serif text-2xl text-ink-soft">Aucune galerie pour l’instant.</p>
+              <p className="text-sm text-muted">Créez votre première galerie à gauche.</p>
             </div>
-          </div>
-        </div>
+          )}
+
+          <ul className="flex flex-col">
+            {galleries.map((g) => {
+              const d = daysLeft(g.expiresAt);
+              const unlocked = g.photos?.filter((p) => p.unlocked).length ?? 0;
+              return (
+                <li key={g.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 py-6 border-b border-line items-center">
+                  <div className="flex flex-col gap-1.5 min-w-0">
+                    <Link href={`/admin/gallery/${g.id}`} className="font-serif text-2xl hover:text-terracotta transition-colors truncate">{g.title}</Link>
+                    <p className="text-sm text-muted">
+                      {g.photos?.length ?? 0} photo{(g.photos?.length ?? 0) > 1 ? "s" : ""} · {g.maxSelection} incluses · {unlocked} déverrouillée{unlocked > 1 ? "s" : ""}
+                      {g.clientEmail && <span> · {g.clientEmail}</span>}
+                    </p>
+                    <p className={`label ${d !== null && d <= 3 ? "text-terracotta" : "text-muted"}`}>
+                      {d === null ? "Pas encore ouverte" : d > 0 ? `Expire dans ${d} jour${d > 1 ? "s" : ""}` : "Expirée"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-5 items-center">
+                    <button onClick={() => copyLink(g)} className={`label transition-colors ${copied === g.id ? "text-terracotta" : "hover:text-terracotta"}`}>{copied === g.id ? "Lien copié" : "Copier le lien"}</button>
+                    <Link href={`/admin/gallery/${g.id}`} className="btn btn-outline">Gérer</Link>
+                    <button onClick={() => deleteGallery(g)} className="label text-muted hover:text-terracotta transition-colors">Supprimer</button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

@@ -48,7 +48,7 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white text-black text-xs tracking-widest uppercase px-5 py-2.5 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-ink text-sand label px-5 py-3 fade-up">
       {message}
     </div>
   );
@@ -280,8 +280,6 @@ export default function AdminGalleryPage() {
 
   // ─── Client link ───────────────────────────────────────────────────────────
 
-  const clientUrl = gallery ? `${window?.location?.origin?.replace('3000', '3000') ?? 'http://localhost:3000'}/g/${gallery.slug}` : '';
-
   function copyLink() {
     if (!gallery) return;
     navigator.clipboard.writeText(`${window.location.origin}/g/${gallery.slug}`);
@@ -313,13 +311,13 @@ export default function AdminGalleryPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-sand text-ink">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-black/95 backdrop-blur border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
+      <header className="sticky top-0 z-30 bg-sand/95 backdrop-blur border-b border-line">
+        <div className="px-6 md:px-20 h-16 flex items-center gap-4">
           <Link
             href="/admin/dashboard"
-            className="text-gray-500 hover:text-white transition-colors text-xs tracking-widest uppercase flex items-center gap-2 shrink-0"
+            className="label text-muted hover:text-terracotta transition-colors flex items-center gap-2 shrink-0"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -328,26 +326,26 @@ export default function AdminGalleryPage() {
           </Link>
 
           <div className="flex-1 min-w-0 text-center">
-            <p className="text-sm font-light tracking-[0.12em] truncate">{gallery?.title}</p>
-            <p className="text-[10px] text-gray-600 tracking-widest">
+            <p className="font-serif text-xl truncate">{gallery?.title}</p>
+            <p className="label text-muted text-[11px]">
               {totalPhotos} photo{totalPhotos !== 1 ? 's' : ''}
               {daysLeft !== null && (
-                <span className={daysLeft <= 3 ? ' text-red-500' : ''}> · {daysLeft}j restants</span>
+                <span className={daysLeft <= 3 ? ' text-terracotta' : ''}> · {daysLeft}j restants</span>
               )}
             </p>
           </div>
 
           <button
             onClick={() => { localStorage.removeItem('token'); router.push('/admin/login'); }}
-            className="text-gray-600 hover:text-white transition-colors text-xs tracking-widest uppercase shrink-0"
+            className="label text-muted hover:text-terracotta transition-colors shrink-0"
           >
-            Déco.
+            Déconnexion
           </button>
         </div>
       </header>
 
       {/* Body */}
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
+      <div className="px-6 md:px-20 py-10 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-10 lg:gap-16">
 
         {/* ── Left: settings panel ── */}
         <aside className="space-y-6">
@@ -366,7 +364,7 @@ export default function AdminGalleryPage() {
               <select
                 value={maxSelection}
                 onChange={(e) => setMaxSelection(Number(e.target.value))}
-                className="input bg-black"
+                className="input"
               >
                 {[10, 15, 20, 25, 30, 40, 50, 60, 80, 100].map((n) => (
                   <option key={n} value={n}>{n} photos</option>
@@ -396,33 +394,29 @@ export default function AdminGalleryPage() {
 
           {/* Client link */}
           <Section title="Lien client">
-            <div className="flex items-center gap-2 border border-white/10 px-3 py-2 rounded">
-              <span className="text-xs text-gray-500 truncate flex-1 font-mono">
+            <div className="flex items-center gap-2 border border-line px-3 py-2.5">
+              <span className="text-xs text-ink-soft truncate flex-1 font-mono">
                 /g/{gallery?.slug}
               </span>
             </div>
             <div className="flex gap-2 pt-1">
               <button
                 onClick={copyLink}
-                className={`flex-1 py-2 border text-xs tracking-widest uppercase transition-all ${
-                  linkCopied
-                    ? 'border-white text-white bg-white/5'
-                    : 'border-white/20 text-gray-400 hover:border-white hover:text-white'
-                }`}
+                className={`btn flex-1 ${linkCopied ? 'btn-accent' : 'btn-ghost'}`}
               >
-                {linkCopied ? '✓ Copié' : 'Copier'}
+                {linkCopied ? 'Copié' : 'Copier'}
               </button>
               <button
                 onClick={sendEmail}
                 disabled={!clientEmail || sendingEmail}
                 title={!clientEmail ? 'Ajoutez un email client d\'abord' : 'Envoyer par email'}
-                className="flex-1 py-2 border border-white/20 text-gray-400 text-xs tracking-widest uppercase hover:border-white hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn btn-ghost flex-1"
               >
-                {sendingEmail ? 'Envoi...' : '✉ Email'}
+                {sendingEmail ? 'Envoi…' : 'Envoyer par email'}
               </button>
             </div>
             {!clientEmail && (
-              <p className="text-[10px] text-gray-600 text-center">
+              <p className="text-xs text-muted text-center">
                 Ajoutez un email client pour envoyer le lien
               </p>
             )}
@@ -473,7 +467,7 @@ export default function AdminGalleryPage() {
                 });
                 router.push('/admin/dashboard');
               }}
-              className="w-full py-2.5 border border-red-900 text-red-700 hover:border-red-500 hover:text-red-400 text-xs tracking-widest uppercase transition-all"
+              className="btn btn-ghost w-full text-terracotta hover:text-terracotta hover:border-terracotta"
             >
               Supprimer la galerie
             </button>
@@ -489,10 +483,10 @@ export default function AdminGalleryPage() {
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onClick={() => !uploading && fileInputRef.current?.click()}
-            className={`relative border-2 border-dashed rounded transition-all duration-200 cursor-pointer
+            className={`relative border border-dashed transition-all duration-200 cursor-pointer bg-sand-deep/40
               ${isDragging
-                ? 'border-white bg-white/5 scale-[1.005]'
-                : 'border-white/15 hover:border-white/35'
+                ? 'border-terracotta bg-sand-deep'
+                : 'border-line hover:border-ink'
               }
               ${uploading ? 'cursor-default' : ''}`}
           >
@@ -508,27 +502,27 @@ export default function AdminGalleryPage() {
             <div className="py-10 flex flex-col items-center gap-3 select-none">
               {uploading ? (
                 <>
-                  <UploadIcon className="w-8 h-8 text-white animate-bounce" />
-                  <p className="text-xs tracking-widest uppercase text-gray-400">
+                  <UploadIcon className="w-8 h-8 text-terracotta animate-bounce" />
+                  <p className="label text-ink-soft">
                     Upload en cours...
                   </p>
-                  <div className="w-48 h-0.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-48 h-0.5 bg-line rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-white transition-all duration-300"
+                      className="h-full bg-terracotta transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
-                  <p className="text-xs text-gray-600">{uploadProgress}%</p>
+                  <p className="text-xs text-muted">{uploadProgress}%</p>
                 </>
               ) : (
                 <>
                   <UploadIcon
-                    className={`w-8 h-8 transition-colors ${isDragging ? 'text-white' : 'text-gray-600'}`}
+                    className={`w-8 h-8 transition-colors ${isDragging ? 'text-terracotta' : 'text-muted'}`}
                   />
-                  <p className={`text-sm font-light transition-colors ${isDragging ? 'text-white' : 'text-gray-500'}`}>
+                  <p className={`font-serif text-xl transition-colors ${isDragging ? 'text-terracotta' : 'text-ink'}`}>
                     {isDragging ? 'Déposez vos photos' : 'Glissez-déposez vos photos ici'}
                   </p>
-                  <p className="text-xs text-gray-700 tracking-wider">
+                  <p className="text-sm text-muted">
                     ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC · 50 Mo max
                   </p>
                 </>
@@ -538,29 +532,29 @@ export default function AdminGalleryPage() {
 
           {/* Stats bar */}
           {(photos.length > 0 || pendingPreviews.length > 0) && (
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-sm text-muted border-b border-line pb-3">
               <span>
-                <span className="text-white">{totalPhotos}</span> photo{totalPhotos !== 1 ? 's' : ''}
+                <span className="text-ink">{totalPhotos}</span> photo{totalPhotos !== 1 ? 's' : ''}
                 {gallery && (
                   <span> · {photos.filter((p) => p.unlocked).length} déverrouillée{photos.filter((p) => p.unlocked).length !== 1 ? 's' : ''}</span>
                 )}
               </span>
-              <span className="tracking-widest uppercase">
-                Sélection max : {maxSelection}
+              <span className="label">
+                {maxSelection} incluses
               </span>
             </div>
           )}
 
           {/* Photo grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
 
             {/* Pending previews (uploading) */}
             {pendingPreviews.map((p) => (
-              <div key={p.localId} className="relative aspect-square overflow-hidden bg-white/5">
+              <div key={p.localId} className="relative aspect-square overflow-hidden bg-sand-deep">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.url} alt={p.name} className="w-full h-full object-cover opacity-40" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-line border-t-terracotta rounded-full animate-spin" />
                 </div>
               </div>
             ))}
@@ -587,8 +581,8 @@ export default function AdminGalleryPage() {
 
           {/* Empty state */}
           {photos.length === 0 && pendingPreviews.length === 0 && !uploading && (
-            <div className="py-20 text-center text-gray-700 text-xs tracking-widest uppercase">
-              Aucune photo — glissez-déposez pour commencer
+            <div className="py-16 text-center font-serif text-xl text-muted">
+              Aucune photo pour l’instant — glissez-déposez pour commencer
             </div>
           )}
         </main>
@@ -626,7 +620,7 @@ function PhotoCard({
   onDelete,
 }: PhotoCardProps) {
   return (
-    <div className="relative aspect-square overflow-hidden group bg-white/5">
+    <div className="relative aspect-square overflow-hidden group bg-sand-deep">
       {/* Preview image */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -640,7 +634,7 @@ function PhotoCard({
       <button
         onClick={onDelete}
         aria-label="Supprimer"
-        className="absolute top-2 right-2 w-6 h-6 bg-black/70 text-white/60 hover:text-white hover:bg-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+        className="absolute top-2 right-2 w-7 h-7 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
       >
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -649,13 +643,13 @@ function PhotoCard({
 
       {/* Status badge */}
       {photo.unlocked && (
-        <div className="absolute top-2 left-2 bg-white text-black text-[9px] font-bold px-1.5 py-0.5 tracking-wider">
-          DÉVERROUILLÉE
+        <div className="absolute top-2 left-2 bg-terracotta text-sand text-[10px] tracking-[0.16em] uppercase px-2 py-1">
+          Déverrouillée
         </div>
       )}
 
       {/* Bottom bar: price */}
-      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent pt-4 pb-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-ink/70 to-transparent pt-5 pb-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
         {isEditingPrice ? (
           <div className="flex items-center gap-1">
             <input
@@ -666,15 +660,15 @@ function PhotoCard({
               onChange={(e) => onPriceChange(e.target.value)}
               onBlur={onPriceCommit}
               onKeyDown={onPriceKeyDown}
-              className="w-14 bg-white text-black text-xs px-1.5 py-0.5 outline-none text-center"
+              className="w-14 bg-sand text-ink text-xs px-1.5 py-0.5 outline-none text-center"
               onClick={(e) => e.stopPropagation()}
             />
-            <span className="text-white/60 text-xs">€</span>
+            <span className="text-sand text-xs">€</span>
           </div>
         ) : (
           <button
             onClick={onEditPrice}
-            className="text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1"
+            className="text-xs text-sand hover:text-terracotta-soft transition-colors flex items-center gap-1"
           >
             <span>{photo.price}€</span>
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -691,8 +685,8 @@ function PhotoCard({
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border border-white/8 p-4 space-y-3">
-      <h2 className="text-[10px] tracking-[0.25em] uppercase text-gray-500 pb-1 border-b border-white/5">
+    <div className="bg-sand-deep/50 border border-line p-5 space-y-4">
+      <h2 className="label text-terracotta pb-2 border-b border-line">
         {title}
       </h2>
       {children}
@@ -703,7 +697,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <label className="text-[10px] tracking-widest uppercase text-gray-600">{label}</label>
+      <label className="label text-muted text-[11px]">{label}</label>
       {children}
     </div>
   );
@@ -714,9 +708,9 @@ function SaveButton({ onClick, loading }: { onClick: () => void; loading: boolea
     <button
       onClick={onClick}
       disabled={loading}
-      className="w-full py-2.5 border border-white/20 text-gray-300 text-xs tracking-widest uppercase hover:border-white hover:text-white transition-all disabled:opacity-50 mt-1"
+      className="btn btn-outline w-full mt-1"
     >
-      {loading ? 'Sauvegarde...' : 'Enregistrer'}
+      {loading ? 'Sauvegarde…' : 'Enregistrer'}
     </button>
   );
 }
@@ -732,17 +726,17 @@ function UploadIcon({ className }: { className?: string }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="sticky top-0 bg-black border-b border-white/5 h-14" />
+    <div className="min-h-screen bg-sand text-ink">
+      <div className="sticky top-0 bg-sand border-b border-line h-16" />
       <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
         <div className="space-y-4">
           {[80, 60, 100, 40].map((w, i) => (
-            <div key={i} className="h-3 bg-white/5 rounded animate-pulse" style={{ width: `${w}%` }} />
+            <div key={i} className="h-3 bg-line rounded animate-pulse" style={{ width: `${w}%` }} />
           ))}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0.5">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-white/5 animate-pulse" />
+            <div key={i} className="aspect-square bg-sand-deep animate-pulse" />
           ))}
         </div>
       </div>

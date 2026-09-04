@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -14,6 +14,11 @@ export class PaymentsService {
   }
 
   private async getToken(): Promise<string> {
+    const id = process.env.PAYPAL_CLIENT_ID ?? '';
+    const secret = process.env.PAYPAL_CLIENT_SECRET ?? '';
+    if (!id || !secret || id.startsWith('ton_') || secret.startsWith('ton_')) {
+      throw new ServiceUnavailableException('Paiement indisponible : PayPal n\'est pas encore configuré (PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET).');
+    }
     const creds = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`,
     ).toString('base64');
@@ -29,7 +34,8 @@ export class PaymentsService {
 
     const data = await res.json() as any;
     if (!data.access_token) {
-      throw new Error('PayPal auth failed: ' + JSON.stringify(data));
+      this.logger.error('PayPal auth failed: ' + JSON.stringify(data));
+      throw new ServiceUnavailableException('Paiement indisponible : identifiants PayPal refusés.');
     }
     return data.access_token;
   }

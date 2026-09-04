@@ -1,24 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import * as sharp from 'sharp';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharp = require('sharp');
 
 @Injectable()
 export class ImageProcessingService {
   async generatePreview(input: Buffer): Promise<Buffer> {
-    return (sharp as any)(input)
+    return sharp(input)
       .resize({ width: 1200, withoutEnlargement: true })
       .jpeg({ quality: 85, progressive: true })
       .toBuffer();
   }
 
   async generateWatermark(input: Buffer): Promise<Buffer> {
-    const preview = await (sharp as any)(input)
+    const preview = await sharp(input)
       .resize({ width: 1200, withoutEnlargement: true })
       .toBuffer();
 
-    const { width, height } = await (sharp as any)(preview).metadata();
+    const { width, height } = await sharp(preview).metadata();
     const svg = this.buildWatermarkSvg(width ?? 1200, height ?? 800);
 
-    return (sharp as any)(preview)
+    return sharp(preview)
       .composite([{ input: Buffer.from(svg), blend: 'over' }])
       .jpeg({ quality: 80, progressive: true })
       .toBuffer();

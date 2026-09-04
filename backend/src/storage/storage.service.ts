@@ -58,8 +58,8 @@ export class StorageService implements OnModuleInit {
     return key;
   }
 
-  /** URL signée courte durée (par défaut 10 min) — jamais d'URL directe vers les originaux. */
-  async getSignedUrl(key: string, expiresIn = 600) {
+  /** URL signée temporaire (1 h par défaut) — jamais d'URL directe et permanente vers les originaux. */
+  async getSignedUrl(key: string, expiresIn = 3600) {
     const cmd = new GetObjectCommand({ Bucket: this.bucket, Key: key });
     return getSignedUrl(this.s3, cmd, { expiresIn });
   }
