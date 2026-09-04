@@ -23,9 +23,16 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - Lancement local validé : Docker, migration, seed, backend, frontend, login, création de galerie OK.
 - Charte visuelle « Atelier » validée par Yonetsu → voir `DESIGN.md`. Les maquettes sont dans l'artefact Claude « Track.Art Directions visuelles ».
 
+## Fait le 4 sept. (soirée, en autonomie)
+- Charte Atelier appliquée sur TOUT le frontend (accueil, login, dashboard, gestion galerie, galerie client, 404, expirée, skeleton). Fonts via next/font (Cormorant Garamond + Jost), tokens dans `globals.css` (@theme), composants `.btn` / `.input` / `.label`, `app/components/Logo.tsx`.
+- Bug upload corrigé : `sharp` importé en CommonJS (`require`) — `import * as sharp` n'était pas appelable.
+- Parcours client testé de bout en bout dans le navigateur : upload de 5 images → lien client → expiration déclenchée à la 1re ouverture → sélection de 3 photos → confirmation gratuite → 3 photos HD téléchargeables, quota passé à 27.
+- Extras payants : le flux arrive jusqu'à PayPal ; identifiants `.env` encore factices → réponse 503 explicite « PayPal non configuré » (plus de 500).
+- URLs signées : 1 h (au lieu de 10 min) pour éviter les images cassées si le client reste longtemps sur la page.
+
 ## Pas encore fait (par ordre de priorité)
-0. **Appliquer DESIGN.md sur tout le frontend** (accueil, login, dashboard, gestion galerie, galerie client, 404/expirée).
-1. **Tester upload + parcours client de bout en bout** : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.
+1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
+1b. Vérifier sur le PC (Chrome) que les images des galeries s'affichent (le navigateur intégré de Claude bloque le port 9000 de MinIO, donc non vérifiable depuis Cowork) : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.
 2. Prolongation de galerie payante côté client (backend : model `Extension` existe, pas de route ni d'UI).
 3. Multilingue FR / EN / ES (champ `languages` existe, UI en français uniquement).
 4. Webhook PayPal : vérifier la signature (`PAYPAL_WEBHOOK_ID`) — aujourd'hui le déverrouillage passe par capture-order côté serveur, ce qui est sûr, mais le webhook n'est pas vérifié.
