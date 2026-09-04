@@ -13,7 +13,8 @@ export default function AdminLogin() {
   async function handleLogin(e: any) {
     e.preventDefault(); setLoading(true); setError("");
     try {
-      const res = await fetch("http://localhost:3001/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+      const res = await fetch(`${API}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Erreur");
       setToken(data.access_token);
@@ -23,7 +24,8 @@ export default function AdminLogin() {
   async function handleTotp(e: any) {
     e.preventDefault(); setLoading(true); setError("");
     try {
-      const res = await fetch("http://localhost:3001/auth/verify-2fa", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ token: totp }) });
+      const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+      const res = await fetch(`${API}/auth/verify-2fa`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ token: totp }) });
       if (!res.ok) throw new Error("Code invalide");
       localStorage.setItem("token", token); router.push("/admin/dashboard");
     } catch (err: any) { setError(err.message); } finally { setLoading(false); }

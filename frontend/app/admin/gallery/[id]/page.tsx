@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const API = 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -284,7 +284,7 @@ export default function AdminGalleryPage() {
 
   function copyLink() {
     if (!gallery) return;
-    navigator.clipboard.writeText(`http://localhost:3000/g/${gallery.slug}`);
+    navigator.clipboard.writeText(`${window.location.origin}/g/${gallery.slug}`);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   }

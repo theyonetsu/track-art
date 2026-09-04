@@ -31,6 +31,12 @@ export class GalleriesController {
   @Get(':slug')
   findOne(@Param('slug') slug: string) { return this.svc.findBySlug(slug); }
 
+  // Public — le client confirme les photos incluses dans son forfait (gratuit)
+  @Post(':slug/confirm-selection')
+  confirmSelection(@Param('slug') slug: string, @Body() body: { photoIds: string[] }) {
+    return this.svc.confirmSelection(slug, body?.photoIds ?? []);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   delete(@Param('id') id: string) { return this.svc.delete(id); }

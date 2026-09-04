@@ -34,16 +34,45 @@ export class PaymentsService {
     return data.access_token;
   }
 
-  async createOrder(galleryId: string, photoIds: string[]) {
+  /** Photos incluses déjà consommées (déverrouillées sans paiement). */
+  private async includedRemaining(galleryId: string, maxSelection: number) {
+    const used = await this.prisma.photo.count({ where: { galleryId, unlocked: true, paid: false } });
+    return Math.max(0, maxSelection - used);
+  }
+
+  /**
+   * Découpe une sélection en photos incluses (gratuites) et extras (payantes).
+   * Les photos déjà déverrouillées sont ignorées.
+   */
+  private async splitSelection(galleryId: string, photoIds: string[]) {
+    const gallery = await this.prisma.gallery.findUnique({ where: { id: galleryId } });
+    if (!gallery) throw new BadRequestException('Galerie introuvable');
+    if (gallery.expiresAt && gallery.expiresAt < new Date()) throw new BadRequestException('Galerie expirée');
+
     const photos = await this.prisma.photo.findMany({
-      where: { id: { in: photoIds }, galleryId },
+      where: { id: { in: photoIds }, galleryId, unlocked: false },
     });
-    if (!photos.length) throw new BadRequestException('Aucune photo valide sélectionnée');
+    // Conserver l'ordre de sélection du client
+    const ordered = photoIds.map((id) => photos.find((p) => p.id === id)).filter(Boolean) as typeof photos;
+    if (!ordered.length) throw new BadRequestException('Aucune photo valide sélectionnée');
 
-    const total = photos.reduce((sum, p) => sum + p.price, 0);
+    const remaining = await this.includedRemaining(galleryId, gallery.maxSelection);
+    const included = ordered.slice(0, remaining);
+    const extras = ordered.slice(remaining);
+    const total = extras.reduce((sum, p) => sum + p.price, 0);
+    return { included, extras, total };
+  }
 
+  async createOrder(galleryId: string, photoIds: string[]) {
+    if (!Array.isArray(photoIds) || !photoIds.length) throw new BadRequestException('Aucune photo sélectionnée');
+    const { included, extras, total } = await this.splitSelection(galleryId, photoIds);
+    if (total <= 0) {
+      throw new BadRequestException('Cette sélection est incluse dans le forfait : utilisez la confirmation gratuite');
+    }
+
+    const allIds = [...included, ...extras].map((p) => p.id);
     const payment = await this.prisma.payment.create({
-      data: { galleryId, type: 'photos', amount: total, photoIds },
+      data: { galleryId, type: 'BuyExtraPhotos', amount: total, photoIds: allIds },
     });
 
     const token = await this.getToken();
@@ -59,7 +88,7 @@ export class PaymentsService {
         purchase_units: [{
           reference_id: payment.id,
           amount: { currency_code: 'EUR', value: total.toFixed(2) },
-          description: 'Track.Art — Photos déverrouillées',
+          description: `Track.Art — ${extras.length} photo(s) supplémentaire(s)`,
         }],
       }),
     });
@@ -75,8 +104,8 @@ export class PaymentsService {
       data: { paypalId: order.id },
     });
 
-    this.logger.log(`Order created: ${order.id} (${total}€, ${photoIds.length} photos)`);
-    return { paypalOrderId: order.id, internalId: payment.id };
+    this.logger.log(`Order created: ${order.id} (${total}€, ${extras.length} extras + ${included.length} incluses)`);
+    return { paypalOrderId: order.id, internalId: payment.id, total, extraCount: extras.length };
   }
 
   async captureOrder(paypalOrderId: string, internalId: string) {
@@ -84,6 +113,9 @@ export class PaymentsService {
     if (!payment) throw new BadRequestException('Paiement introuvable');
     if (payment.status === 'completed') {
       return { success: true, photoIds: payment.photoIds };
+    }
+    if (payment.paypalId && payment.paypalId !== paypalOrderId) {
+      throw new BadRequestException('Commande PayPal incohérente');
     }
 
     const token = await this.getToken();
@@ -102,18 +134,24 @@ export class PaymentsService {
       throw new BadRequestException('Paiement non complété');
     }
 
-    const updated = await this.prisma.payment.update({
+    await this.prisma.payment.update({
       where: { id: internalId },
       data: { status: 'completed' },
     });
 
-    await this.prisma.photo.updateMany({
-      where: { id: { in: updated.photoIds } },
-      data: { unlocked: true },
-    });
+    // Déverrouillage : les photos incluses restent gratuites, le reste est marqué payé
+    const { included, extras } = await this.splitSelection(payment.galleryId, payment.photoIds).catch(() => ({ included: [], extras: [] } as any));
+    if (included.length) {
+      await this.prisma.photo.updateMany({ where: { id: { in: included.map((p: any) => p.id) } }, data: { unlocked: true, paid: false } });
+    }
+    if (extras.length) {
+      await this.prisma.photo.updateMany({ where: { id: { in: extras.map((p: any) => p.id) } }, data: { unlocked: true, paid: true } });
+    }
+    // Filet de sécurité : tout ce qui figure dans le paiement est déverrouillé
+    await this.prisma.photo.updateMany({ where: { id: { in: payment.photoIds }, unlocked: false }, data: { unlocked: true, paid: true } });
 
-    this.logger.log(`Payment captured: ${internalId} — ${updated.photoIds.length} photos déverrouillées`);
-    return { success: true, photoIds: updated.photoIds };
+    this.logger.log(`Payment captured: ${internalId} — ${payment.photoIds.length} photos déverrouillées`);
+    return { success: true, photoIds: payment.photoIds };
   }
 
   async createPayment(data: any) {

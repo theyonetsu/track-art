@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "PowerShell(Get-ChildItem C:\\\\Users\\\\gamer\\\\Desktop\\\\track-art -Name | Where-Object { $_ -notmatch \"node_modules\" })",
+      "mcp__railway__check-railway-status",
+      "mcp__railway__list-projects",
+      "mcp__railway__create-project-and-link",
+      "mcp__railway__deploy-template",
+      "PowerShell(railway add *)",
+      "mcp__railway__generate-domain",
+      "PowerShell(Get-ChildItem C:\\\\Users\\\\gamer\\\\Desktop\\\\track-art\\\\frontend -Name | Where-Object { $_ -notmatch \"node_modules\" })",
+      "PowerShell(Get-ChildItem C:\\\\Users\\\\gamer\\\\Desktop\\\\track-art\\\\backend -Name | Where-Object { $_ -notmatch \"node_modules\" -and $_ -notmatch \"dist\" })",
+      "mcp__railway__set-variables",
+      "mcp__railway__deploy",
+      "mcp__railway__get-logs",
+      "mcp__railway__list-deployments",
+      "PowerShell(npm run *)",
+      "PowerShell(Get-ChildItem C:\\\\Users\\\\gamer\\\\Desktop\\\\track-art\\\\frontend\\\\app -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\gamer\\\\Desktop\\\\track-art\\\\frontend\" -Recurse -File | Where-Object { $_.FullName -notmatch \"node_modules\" -and $_.FullName -notmatch \"\\\\.next\" } | Select-Object FullName)",
+      "Bash(findstr /E \"\\(\\\\.env|config|README\\)\")"
+    ]
+  }
+}

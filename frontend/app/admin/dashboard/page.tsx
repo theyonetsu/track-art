@@ -2,26 +2,38 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 export default function Dashboard() {
-  const [galleries, setGalleries] = useState([]);
+  const [galleries, setGalleries] = useState<any[]>([]);
+  const [token, setToken] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
   const [maxSelection, setMaxSelection] = useState(30);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
-  useEffect(() => { fetchGalleries(); }, []);
+  const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+  useEffect(() => {
+    const t = localStorage.getItem("token") ?? "";
+    if (!t) { router.replace("/admin/login"); return; }
+    setToken(t);
+  }, [router]);
+
+  useEffect(() => { if (token) fetchGalleries(); }, [token]);
+
   async function fetchGalleries() {
-    const res = await fetch("http://localhost:3001/galleries", { headers: { Authorization: `Bearer ${token}` } });
-    const data = await res.json();
-    setGalleries(data);
+    try {
+      const res = await fetch(`${API}/galleries`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) { router.replace("/admin/login"); return; }
+      const data = await res.json();
+      if (Array.isArray(data)) setGalleries(data);
+    } catch (e) { console.error(e); }
   }
   async function createGallery(e: any) {
     e.preventDefault(); setLoading(true);
-    await fetch("http://localhost:3001/galleries", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ title, clientEmail: email, maxSelection, languages: ["fr"] }) });
+    await fetch(`${API}/galleries`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ title, clientEmail: email, maxSelection, languages: ["fr"] }) });
     setTitle(""); setEmail(""); setLoading(false); fetchGalleries();
   }
   async function deleteGallery(id: string) {
-    await fetch(`http://localhost:3001/galleries/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    await fetch(`${API}/galleries/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     fetchGalleries();
   }
   return (
@@ -57,7 +69,7 @@ export default function Dashboard() {
                     {g.expiresAt && <p className="text-xs text-gray-600 mt-1">Expire: {new Date(g.expiresAt).toLocaleDateString("fr-FR")}</p>}
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => { navigator.clipboard.writeText(`http://localhost:3000/g/${g.slug}`); }} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Copier lien</button>
+                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/g/${g.slug}`); }} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Copier lien</button>
                     <a href={`/admin/gallery/${g.id}`} className="text-xs text-gray-400 hover:text-white tracking-widest uppercase transition-colors">Gérer</a>
                     <button onClick={() => deleteGallery(g.id)} className="text-xs text-red-800 hover:text-red-400 tracking-widest uppercase transition-colors">Supprimer</button>
                   </div>

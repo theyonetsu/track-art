@@ -47,6 +47,7 @@ model Photo {
   previewKey   String
   watermarkKey String
   unlocked     Boolean  @default(false)
+  paid         Boolean  @default(false)
   price        Int      @default(2)
   createdAt    DateTime @default(now())
   gallery      Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
-const API = 'http://localhost:3001';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 type Photo = {
   id: string;
@@ -21,7 +21,13 @@ type Gallery = {
   slug: string;
   maxSelection: number;
   expiresAt: string | null;
-  photos: unknown[];
+  includedUsed: number;
+  includedRemaining: number;
+};
+
+// Typage minimal du SDK PayPal chargé dynamiquement
+type PayPalSdk = {
+  Buttons: (opts: Record<string, unknown>) => { render: (el: HTMLElement) => Promise<void> };
 };
 
 type Props = {
@@ -38,7 +44,8 @@ function daysUntil(dateStr: string | null): number | null {
 
 export default function GalleryClient({ gallery, initialPhotos, paypalClientId }: Props) {
   const router = useRouter();
-  const [photos] = useState<Photo[]>(initialPhotos);
+  // Les props sont rafraîchies par router.refresh() après confirmation/paiement
+  const photos = initialPhotos;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<Photo | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -46,24 +53,31 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
 
   const days = daysUntil(gallery.expiresAt);
   const selectedCount = selected.size;
-  const total = Array.from(selected).reduce((sum, id) => {
-    const p = photos.find((ph) => ph.id === id);
-    return sum + (p?.price ?? 0);
-  }, 0);
+  const includedRemaining = gallery.includedRemaining;
+
+  // Les N premières photos sélectionnées sont incluses dans le forfait,
+  // les suivantes sont facturées au prix unitaire de chaque photo.
+  const selectedList = photos.filter((p) => selected.has(p.id));
+  const includedCount = Math.min(selectedCount, includedRemaining);
+  const extraPhotos = selectedList.slice(includedRemaining);
+  const extraCount = extraPhotos.length;
+  const total = extraPhotos.reduce((sum, p) => sum + p.price, 0);
 
   const unlockedPhotos = photos.filter((p) => p.unlocked && p.originalUrl);
+  const selectablePhotos = photos.filter((p) => !p.unlocked);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        if (next.size >= gallery.maxSelection) return prev;
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+  }
+
+  // Sécurité basique : pas de clic droit ni de drag sur les images
+  function blockContext(e: React.SyntheticEvent) {
+    e.preventDefault();
   }
 
   function openLightbox(photo: Photo, e: React.MouseEvent) {
@@ -91,7 +105,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white select-none" onContextMenu={blockContext} onDragStart={blockContext}>
       {/* Header */}
       <header className="sticky top-0 z-30 bg-black/95 backdrop-blur border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
@@ -132,8 +146,10 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
         <div className="mb-6 text-center">
           <p className="text-xs tracking-[0.2em] uppercase text-gray-500">
             {selectedCount > 0
-              ? `${selectedCount} / ${gallery.maxSelection} photos sélectionnées`
-              : `Sélectionnez jusqu'à ${gallery.maxSelection} photos`}
+              ? `${includedCount} / ${includedRemaining} incluses${extraCount > 0 ? ` · ${extraCount} supplémentaire${extraCount > 1 ? 's' : ''}` : ''}`
+              : includedRemaining > 0
+                ? `${includedRemaining} photo${includedRemaining > 1 ? 's' : ''} incluse${includedRemaining > 1 ? 's' : ''} dans votre forfait`
+                : 'Forfait utilisé — photos supplémentaires à l\'unité'}
           </p>
         </div>
 
@@ -152,6 +168,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
                     alt=""
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    draggable={false}
                   />
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <a
@@ -177,30 +194,22 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
           <div className="py-32 text-center text-gray-600 text-sm tracking-widest uppercase">
             Aucune photo dans cette galerie
           </div>
+        ) : selectablePhotos.length === 0 ? (
+          <div className="py-16 text-center text-gray-600 text-sm tracking-widest uppercase">
+            Toutes les photos sont déverrouillées
+          </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0.5">
-            {photos.map((photo) => {
+            {selectablePhotos.map((photo) => {
               const isSelected = selected.has(photo.id);
-              const isAtMax = selectedCount >= gallery.maxSelection && !isSelected;
+              const selectionIndex = selectedList.findIndex((p) => p.id === photo.id);
+              const isExtra = isSelected && selectionIndex >= includedRemaining;
 
               return (
                 <button
                   key={photo.id}
-                  className={`relative aspect-square overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-white ${
-                    isAtMax ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  }`}
-                  onClick={(e) => {
-                    if (!isAtMax || isSelected) {
-                      toggleSelect(photo.id);
-                    }
-                    if (!isSelected && !isAtMax) {
-                      // don't open lightbox on select
-                    } else if (isSelected) {
-                      // deselect, no lightbox
-                    } else {
-                      openLightbox(photo, e);
-                    }
-                  }}
+                  className="relative aspect-square overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
+                  onClick={() => toggleSelect(photo.id)}
                   onDoubleClick={(e) => openLightbox(photo, e)}
                   aria-pressed={isSelected}
                   aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
@@ -214,6 +223,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
                       isSelected ? 'brightness-75 scale-[1.02]' : 'group-hover:brightness-90'
                     }`}
                     loading="lazy"
+                    draggable={false}
                   />
 
                   {/* Selection overlay */}
@@ -241,17 +251,10 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
                     )}
                   </div>
 
-                  {/* Price badge (non-selected) */}
-                  {!isSelected && photo.price > 0 && !photo.unlocked && (
-                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {photo.price}€
-                    </div>
-                  )}
-
-                  {/* Unlocked badge */}
-                  {photo.unlocked && (
-                    <div className="absolute bottom-2 right-2 bg-white/10 backdrop-blur text-white text-[10px] px-1.5 py-0.5">
-                      ✓ Incluse
+                  {/* Prix : affiché si la photo est un extra (ou au survol si le forfait est épuisé) */}
+                  {(isExtra || (!isSelected && includedRemaining - selectedCount <= 0)) && photo.price > 0 && (
+                    <div className={`absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 transition-opacity ${isExtra ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                      +{photo.price}€
                     </div>
                   )}
                 </button>
@@ -268,11 +271,12 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
             <div>
               <p className="text-sm font-light">
                 <span className="text-white">{selectedCount}</span>
-                <span className="text-gray-500"> / {gallery.maxSelection} photos</span>
+                <span className="text-gray-500"> photo{selectedCount > 1 ? 's' : ''}</span>
               </p>
-              {total > 0 && (
-                <p className="text-xs text-gray-400">{total}€ total</p>
-              )}
+              <p className="text-xs text-gray-400">
+                {includedCount} incluse{includedCount > 1 ? 's' : ''}
+                {extraCount > 0 && ` · ${extraCount} extra${extraCount > 1 ? 's' : ''} = ${total}€`}
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -391,7 +395,7 @@ function CheckoutDrawer({
     };
 
     script.onload = () => {
-      const win = window as any;
+      const win = window as unknown as { paypal?: PayPalSdk };
       if (!win.paypal || !containerRef.current) return;
 
       win.paypal
@@ -419,9 +423,9 @@ function CheckoutDrawer({
               internalIdRef.current = internalId;
               setStatus('processing');
               return paypalOrderId;
-            } catch (err: any) {
+            } catch (err) {
               setStatus('error');
-              setErrorMsg(err.message ?? 'Erreur lors de la création de la commande');
+              setErrorMsg(err instanceof Error ? err.message : 'Erreur lors de la création de la commande');
               throw err;
             }
           },
@@ -437,7 +441,7 @@ function CheckoutDrawer({
               });
               if (!res.ok) throw new Error(await res.text());
               onSuccess();
-            } catch (err: any) {
+            } catch {
               setStatus('error');
               setErrorMsg('Paiement reçu mais erreur lors du déverrouillage. Contactez-nous.');
             }
@@ -466,7 +470,7 @@ function CheckoutDrawer({
         document.head.removeChild(script);
       }
       // Clean up PayPal from window to allow re-init on re-open
-      delete (window as any).paypal;
+      delete (window as unknown as { paypal?: PayPalSdk }).paypal;
     };
   }, [gallery.id, paypalClientId, selectedIds, onSuccess]);
 
@@ -513,8 +517,18 @@ function CheckoutDrawer({
           {/* Summary */}
           <div className="border border-white/10 rounded p-4 mb-6 space-y-2">
             <div className="flex justify-between text-sm text-gray-400">
-              <span>{selectedPhotos.length} photo{selectedPhotos.length > 1 ? 's' : ''}</span>
-              <span>{total > 0 ? `${total}€` : 'Inclus'}</span>
+              <span>{Math.min(selectedPhotos.length, gallery.includedRemaining)} photo{Math.min(selectedPhotos.length, gallery.includedRemaining) > 1 ? 's' : ''} incluse{Math.min(selectedPhotos.length, gallery.includedRemaining) > 1 ? 's' : ''}</span>
+              <span>0€</span>
+            </div>
+            {selectedPhotos.length > gallery.includedRemaining && (
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>{selectedPhotos.length - gallery.includedRemaining} photo{selectedPhotos.length - gallery.includedRemaining > 1 ? 's' : ''} supplémentaire{selectedPhotos.length - gallery.includedRemaining > 1 ? 's' : ''}</span>
+                <span>{total}€</span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm text-white border-t border-white/10 pt-2">
+              <span>Total</span>
+              <span>{total}€</span>
             </div>
             {total === 0 && (
               <p className="text-xs text-gray-600">
@@ -550,9 +564,11 @@ function CheckoutDrawer({
             />
           )}
 
-          <p className="text-center text-xs text-gray-600 mt-4">
-            Paiement sécurisé via PayPal
-          </p>
+          {total > 0 && (
+            <p className="text-center text-xs text-gray-600 mt-4">
+              Paiement sécurisé via PayPal
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -571,24 +587,31 @@ function FreeConfirmButton({
   onSuccess: () => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function confirm() {
     setLoading(true);
+    setError('');
     try {
-      // Unlock directly via admin endpoint — in a real app this would be
-      // gated behind a separate "confirm selection" flow
-      await Promise.all(
-        Array.from(selectedIds).map((id) =>
-          fetch(`${API}/photos/${id}/unlock`, { method: 'PATCH' }),
-        ),
-      );
+      const res = await fetch(`${API}/galleries/${gallery.slug}/confirm-selection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoIds: Array.from(selectedIds) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message ?? 'Erreur lors de la confirmation');
+      }
       onSuccess();
-    } catch {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la confirmation');
       setLoading(false);
     }
   }
 
   return (
+    <>
+    {error && <p className="text-red-400 text-xs text-center mb-3">{error}</p>}
     <button
       onClick={confirm}
       disabled={loading}
@@ -596,5 +619,6 @@ function FreeConfirmButton({
     >
       {loading ? 'Confirmation...' : 'Confirmer ma sélection'}
     </button>
+    </>
   );
 }
