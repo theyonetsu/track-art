@@ -18,8 +18,14 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - Cron : rappel d'expiration J-3 (8 h) et purge (3 h).
 - Compilation backend + frontend vérifiée (tsc + eslint OK).
 
+## Fait le 4 sept. (après-midi)
+- Bug 500 sur routes protégées corrigé (JwtStrategy non enregistrée). API proxifiée en `/api` par Next (`NEXT_PUBLIC_API_URL=/api`).
+- Lancement local validé : Docker, migration, seed, backend, frontend, login, création de galerie OK.
+- Charte visuelle « Atelier » validée par Yonetsu → voir `DESIGN.md`. Les maquettes sont dans l'artefact Claude « Track.Art Directions visuelles ».
+
 ## Pas encore fait (par ordre de priorité)
-1. **Tester en réel sur le PC** : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.
+0. **Appliquer DESIGN.md sur tout le frontend** (accueil, login, dashboard, gestion galerie, galerie client, 404/expirée).
+1. **Tester upload + parcours client de bout en bout** : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.
 2. Prolongation de galerie payante côté client (backend : model `Extension` existe, pas de route ni d'UI).
 3. Multilingue FR / EN / ES (champ `languages` existe, UI en français uniquement).
 4. Webhook PayPal : vérifier la signature (`PAYPAL_WEBHOOK_ID`) — aujourd'hui le déverrouillage passe par capture-order côté serveur, ce qui est sûr, mais le webhook n'est pas vérifié.
