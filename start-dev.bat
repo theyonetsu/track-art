@@ -6,7 +6,7 @@ docker compose up -d || (echo Docker Desktop doit etre demarre. & pause & exit /
 echo [2/4] Migrations Prisma + seed admin...
 cd backend
 if not exist node_modules call npm install
-call npx prisma migrate dev --name photo_paid --skip-seed
+call npx prisma migrate dev --skip-seed
 call npm run seed
 echo [3/4] Backend sur http://localhost:3001
 start "Track.Art backend" cmd /k "npm run start:dev"

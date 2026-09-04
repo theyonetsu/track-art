@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Req, Headers } from '@nestjs/common';
 import { GalleriesService } from './galleries.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 
@@ -6,38 +6,40 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 export class GalleriesController {
   constructor(private svc: GalleriesService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  create(@Body() body: any) { return this.svc.create(body); }
+  // ─── Photographe ─────────────────────────────────────────────────────────
+  @UseGuards(JwtAuthGuard) @Post()
+  create(@Req() req, @Body() body: Record<string, unknown>) { return this.svc.create(req.user, body); }
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  findAll() { return this.svc.findAll(); }
+  @UseGuards(JwtAuthGuard) @Get()
+  findAll(@Req() req) { return this.svc.findAll(req.user); }
 
-  // Admin manage routes — declared BEFORE :slug to avoid routing conflict
-  @UseGuards(JwtAuthGuard)
-  @Get('manage/:id')
-  findById(@Param('id') id: string) { return this.svc.findById(id); }
+  @UseGuards(JwtAuthGuard) @Get('manage/:id')
+  findById(@Req() req, @Param('id') id: string) { return this.svc.findById(id, req.user); }
 
-  @UseGuards(JwtAuthGuard)
-  @Patch('manage/:id')
-  update(@Param('id') id: string, @Body() body: any) { return this.svc.update(id, body); }
+  @UseGuards(JwtAuthGuard) @Patch('manage/:id')
+  update(@Req() req, @Param('id') id: string, @Body() body: Record<string, unknown>) { return this.svc.update(id, req.user, body); }
 
-  @UseGuards(JwtAuthGuard)
-  @Post('manage/:id/send-link')
-  sendLink(@Param('id') id: string) { return this.svc.sendLink(id); }
+  @UseGuards(JwtAuthGuard) @Post('manage/:id/send-link')
+  sendLink(@Req() req, @Param('id') id: string) { return this.svc.sendLink(id, req.user); }
 
-  // Public — must come after static routes
+  @UseGuards(JwtAuthGuard) @Post('manage/:id/reset-expiry')
+  resetExpiry(@Req() req, @Param('id') id: string) { return this.svc.resetExpiry(id, req.user); }
+
+  @UseGuards(JwtAuthGuard) @Post('manage/:id/extend')
+  extend(@Req() req, @Param('id') id: string, @Body() body: { days: number }) { return this.svc.extend(id, req.user, body?.days); }
+
+  @UseGuards(JwtAuthGuard) @Delete('manage/:id')
+  delete(@Req() req, @Param('id') id: string) { return this.svc.delete(id, req.user); }
+
+  // ─── Client (public) ─────────────────────────────────────────────────────
   @Get(':slug')
-  findOne(@Param('slug') slug: string) { return this.svc.findBySlug(slug); }
+  findOne(@Param('slug') slug: string, @Headers('x-gallery-token') token?: string) { return this.svc.findBySlug(slug, token); }
 
-  // Public — le client confirme les photos incluses dans son forfait (gratuit)
+  @Post(':slug/access')
+  access(@Param('slug') slug: string, @Body() body: { password: string }) { return this.svc.access(slug, body?.password); }
+
   @Post(':slug/confirm-selection')
-  confirmSelection(@Param('slug') slug: string, @Body() body: { photoIds: string[] }) {
-    return this.svc.confirmSelection(slug, body?.photoIds ?? []);
+  confirmSelection(@Param('slug') slug: string, @Body() body: { photoIds: string[] }, @Headers('x-gallery-token') token?: string) {
+    return this.svc.confirmSelection(slug, body?.photoIds ?? [], token);
   }
-
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  delete(@Param('id') id: string) { return this.svc.delete(id); }
 }

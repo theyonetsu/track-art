@@ -1,745 +1,293 @@
-'use client';
-
-import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+"use client";
+import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import AdminShell from "../../../components/AdminShell";
+import { Section, Field, Switch, Toast } from "../../../components/ui";
+import { api, API, getToken, daysLeft, formatDate, euros } from "../../../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 type Gallery = {
-  id: string;
-  title: string;
-  slug: string;
-  maxSelection: number;
-  clientEmail: string | null;
-  clientPhone: string | null;
-  expiresAt: string | null;
-  firstOpenedAt: string | null;
-  createdAt: string;
-  photos: unknown[];
+  id: string; title: string; slug: string; url: string; maxSelection: number; expiryDays: number;
+  clientName: string | null; clientEmail: string | null; clientPhone: string | null; eventDate: string | null; message: string | null;
+  extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null;
+  allowHdDownload: boolean; coverPhotoId: string | null; isArchived: boolean; hasPassword: boolean;
+  expiresAt: string | null; firstOpenedAt: string | null; createdAt: string;
+  effective: { extraPhotoPrice: number; extensionPrice: number; extensionDays: number; commissionRate: number; studioName: string | null; watermarkText: string };
+  payments: { id: string; type: string; amount: number; netAmount: number; status: string; createdAt: string; photoIds: string[] }[];
+  extensions: { id: string; days: number; amount: number; createdAt: string }[];
 };
+type Photo = { id: string; unlocked: boolean; paid: boolean; price: number; filename: string | null; previewUrl: string; isCover: boolean; width: number | null; height: number | null };
+type Pending = { localId: string; url: string; name: string };
 
-type AdminPhoto = {
-  id: string;
-  galleryId: string;
-  unlocked: boolean;
-  price: number;
-  createdAt: string;
-  previewUrl: string;
-  watermarkUrl: string;
-  originalUrl: string;
-};
-
-type Settings = {
-  extensionPrice: number;
-  extensionDays: number;
-  extraPhotoPrice: number;
-};
-
-type PendingPreview = { localId: string; url: string; name: string };
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-
-function Toast({ message, onDone }: { message: string; onDone: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 2500);
-    return () => clearTimeout(t);
-  }, [onDone]);
-  return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-ink text-sand label px-5 py-3 fade-up">
-      {message}
-    </div>
-  );
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
+const TYPE: Record<string, string> = { BuyExtraPhotos: "Photos supplémentaires", ExtendGallery: "Prolongation", photos: "Photos supplémentaires" };
 
 export default function AdminGalleryPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-
-  const [token, setToken] = useState('');
-  const [gallery, setGallery] = useState<Gallery | null>(null);
-  const [photos, setPhotos] = useState<AdminPhoto[]>([]);
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState('');
-
-  // Gallery form state
-  const [title, setTitle] = useState('');
-  const [maxSelection, setMaxSelection] = useState(30);
-  const [clientEmail, setClientEmail] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [savingGallery, setSavingGallery] = useState(false);
-
-  // Pricing form state
-  const [extensionPrice, setExtensionPrice] = useState(5);
-  const [extensionDays, setExtensionDays] = useState(7);
-  const [extraPhotoPrice, setExtraPhotoPrice] = useState(2);
-  const [savingPrices, setSavingPrices] = useState(false);
-
-  // Upload state
-  const [isDragging, setIsDragging] = useState(false);
+  const [g, setG] = useState<Gallery | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [form, setForm] = useState<Partial<Gallery> & { password?: string }>({});
+  const [toast, setToast] = useState<{ m: string; e?: boolean } | null>(null);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [pendingPreviews, setPendingPreviews] = useState<PendingPreview[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [pending, setPending] = useState<Pending[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [editPrice, setEditPrice] = useState<{ id: string; v: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [extendDays, setExtendDays] = useState(7);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  // Per-photo price editing
-  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
-  const [editingPriceVal, setEditingPriceVal] = useState('');
-  const priceInputRef = useRef<HTMLInputElement>(null);
+  const notify = (m: string, e = false) => setToast({ m, e });
 
-  // Link actions
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
+  const load = useCallback(async () => {
+    const [gal, ph] = await Promise.all([api<Gallery>(`/galleries/manage/${id}`), api<Photo[]>(`/photos/gallery/${id}/admin`)]);
+    setG(gal); setPhotos(ph);
+    setForm({ ...gal, eventDate: gal.eventDate ? gal.eventDate.slice(0, 10) : "", password: "" });
+  }, [id]);
+  useEffect(() => { load().catch((e) => notify(e.message, true)); }, [load]);
 
-  // ─── Auth + initial load ───────────────────────────────────────────────────
+  const setF = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
+  const num = (k: string) => (e: ChangeEvent<HTMLInputElement>) => setF(k, e.target.value === "" ? null : Number(e.target.value));
 
-  useEffect(() => {
-    const t = localStorage.getItem('token') ?? '';
-    if (!t) { router.replace('/admin/login'); return; }
-    setToken(t);
-  }, [router]);
-
-  const auth = useCallback(
-    (extra?: Record<string, string>) => ({
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...extra,
-    }),
-    [token],
-  );
-
-  const loadPhotos = useCallback(async () => {
-    if (!token) return;
-    const res = await fetch(`${API}/photos/gallery/${id}/admin`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setPhotos(await res.json());
-  }, [id, token]);
-
-  useEffect(() => {
-    if (!token) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const [gRes, pRes, sRes] = await Promise.all([
-          fetch(`${API}/galleries/manage/${id}`, { headers: auth() }),
-          fetch(`${API}/photos/gallery/${id}/admin`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`${API}/admin/settings`, { headers: auth() }),
-        ]);
-
-        if (gRes.status === 401) { router.replace('/admin/login'); return; }
-
-        const [g, p, s]: [Gallery, AdminPhoto[], Settings] = await Promise.all([
-          gRes.json(), pRes.json(), sRes.json(),
-        ]);
-
-        setGallery(g);
-        setTitle(g.title);
-        setMaxSelection(g.maxSelection);
-        setClientEmail(g.clientEmail ?? '');
-        setClientPhone(g.clientPhone ?? '');
-        setPhotos(p);
-        setSettings(s);
-        setExtensionPrice(s.extensionPrice);
-        setExtensionDays(s.extensionDays);
-        setExtraPhotoPrice(s.extraPhotoPrice);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, token, auth, router]);
+  async function save(keys: string[]) {
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {}; keys.forEach((k) => (body[k] = (form as Record<string, unknown>)[k]));
+      if ("eventDate" in body && !body.eventDate) body.eventDate = null;
+      const gal = await api<Gallery>(`/galleries/manage/${id}`, { method: "PATCH", json: body });
+      setG(gal); setForm((f) => ({ ...f, ...gal, eventDate: gal.eventDate ? gal.eventDate.slice(0, 10) : "", password: "" })); notify("Enregistré");
+    } catch (e) { notify(e instanceof Error ? e.message : "Erreur", true); } finally { setSaving(false); }
+  }
 
   // ─── Upload ────────────────────────────────────────────────────────────────
-
   function handleFiles(files: File[]) {
     if (!files.length || uploading) return;
-
-    const previews: PendingPreview[] = files.map((f) => ({
-      localId: Math.random().toString(36).slice(2),
-      url: URL.createObjectURL(f),
-      name: f.name,
-    }));
-    setPendingPreviews(previews);
-
-    const form = new FormData();
-    files.forEach((f) => form.append('photos', f));
-
+    const previews = files.map((f) => ({ localId: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name }));
+    setPending(previews);
+    const fd = new FormData(); files.forEach((f) => fd.append("photos", f));
     const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-    };
+    xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
     xhr.onload = () => {
-      setUploading(false);
-      setUploadProgress(0);
-      previews.forEach((p) => URL.revokeObjectURL(p.url));
-      setPendingPreviews([]);
-      loadPhotos();
-      setToast(`${files.length} photo${files.length > 1 ? 's' : ''} ajoutée${files.length > 1 ? 's' : ''}`);
+      setUploading(false); setProgress(0); previews.forEach((p) => URL.revokeObjectURL(p.url)); setPending([]);
+      if (xhr.status >= 200 && xhr.status < 300) { load(); notify(`${files.length} photo${files.length > 1 ? "s" : ""} ajoutée${files.length > 1 ? "s" : ""}`); }
+      else { let m = "Erreur lors de l'upload"; try { m = JSON.parse(xhr.responseText).message ?? m; } catch {} notify(m, true); }
     };
-    xhr.onerror = () => {
-      setUploading(false);
-      setPendingPreviews([]);
-      setToast('Erreur lors de l\'upload');
-    };
+    xhr.onerror = () => { setUploading(false); setPending([]); notify("Erreur réseau pendant l'upload", true); };
+    xhr.open("POST", `${API}/photos/gallery/${id}/upload`);
+    xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
+    setUploading(true); xhr.send(fd);
+  }
+  const onDrop = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(false); handleFiles(Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"))); };
 
-    xhr.open('POST', `${API}/photos/gallery/${id}/upload`);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    setUploading(true);
-    xhr.send(form);
-  }
-
-  function onDragOver(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragging(true);
-  }
-  function onDragLeave(e: DragEvent<HTMLDivElement>) {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false);
-  }
-  function onDrop(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
-    handleFiles(files);
-  }
-  function onFileInput(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    handleFiles(files);
-    e.target.value = '';
-  }
-
-  // ─── Gallery save ──────────────────────────────────────────────────────────
-
-  async function saveGallery() {
-    setSavingGallery(true);
+  // ─── Photos ────────────────────────────────────────────────────────────────
+  async function photoAction(p: Photo, action: "cover" | "unlock" | "lock" | "delete") {
     try {
-      const res = await fetch(`${API}/galleries/manage/${id}`, {
-        method: 'PATCH',
-        headers: auth(),
-        body: JSON.stringify({ title, maxSelection, clientEmail: clientEmail || null, clientPhone: clientPhone || null }),
-      });
-      if (res.ok) {
-        const g = await res.json();
-        setGallery(g);
-        setToast('Galerie sauvegardée');
-      }
-    } finally {
-      setSavingGallery(false);
-    }
+      if (action === "cover") { await api(`/galleries/manage/${id}`, { method: "PATCH", json: { coverPhotoId: p.id } }); }
+      if (action === "unlock") await api(`/photos/${p.id}/unlock`, { method: "PATCH" });
+      if (action === "lock") await api(`/photos/${p.id}/lock`, { method: "PATCH" });
+      if (action === "delete") { if (!confirm("Supprimer cette photo définitivement ?")) return; await api(`/photos/${p.id}`, { method: "DELETE" }); }
+      await load();
+    } catch (e) { notify(e instanceof Error ? e.message : "Erreur", true); }
+  }
+  async function commitPrice() {
+    if (!editPrice) return;
+    const price = parseInt(editPrice.v, 10); setEditPrice(null);
+    if (isNaN(price) || price < 0) return;
+    try { await api(`/photos/${editPrice.id}/price`, { method: "PATCH", json: { price } }); setPhotos((ps) => ps.map((p) => (p.id === editPrice.id ? { ...p, price } : p))); } catch (e) { notify(e instanceof Error ? e.message : "Erreur", true); }
   }
 
-  // ─── Price settings save ───────────────────────────────────────────────────
-
-  async function savePrices() {
-    setSavingPrices(true);
-    try {
-      await fetch(`${API}/admin/settings`, {
-        method: 'PATCH',
-        headers: auth(),
-        body: JSON.stringify({ extensionPrice, extensionDays, extraPhotoPrice }),
-      });
-      setToast('Tarifs sauvegardés');
-    } finally {
-      setSavingPrices(false);
-    }
+  // ─── Actions galerie ───────────────────────────────────────────────────────
+  async function act(path: string, body?: unknown, msg?: string) {
+    try { await api(`/galleries/manage/${id}/${path}`, { method: "POST", json: body }); await load(); if (msg) notify(msg); }
+    catch (e) { notify(e instanceof Error ? e.message : "Erreur", true); }
   }
-
-  // ─── Photo price edit ──────────────────────────────────────────────────────
-
-  function startEditPrice(photo: AdminPhoto) {
-    setEditingPriceId(photo.id);
-    setEditingPriceVal(String(photo.price));
-    setTimeout(() => priceInputRef.current?.select(), 0);
+  async function remove() {
+    if (!confirm(`Supprimer « ${g?.title} » et toutes ses photos ? Cette action est définitive.`)) return;
+    try { await api(`/galleries/manage/${id}`, { method: "DELETE" }); router.push("/admin/dashboard"); } catch (e) { notify(e instanceof Error ? e.message : "Erreur", true); }
   }
+  function copyLink() { if (!g) return; navigator.clipboard.writeText(`${window.location.origin}/g/${g.slug}`); setCopied(true); setTimeout(() => setCopied(false), 1800); }
 
-  async function commitPrice(photoId: string) {
-    const price = parseInt(editingPriceVal, 10);
-    if (isNaN(price) || price < 0) { setEditingPriceId(null); return; }
-    setEditingPriceId(null);
-    await fetch(`${API}/photos/${photoId}/price`, {
-      method: 'PATCH',
-      headers: auth(),
-      body: JSON.stringify({ price }),
-    });
-    setPhotos((prev) => prev.map((p) => (p.id === photoId ? { ...p, price } : p)));
-  }
+  if (!g) return <AdminShell><p className="meta">Chargement…</p></AdminShell>;
 
-  // ─── Delete photo ──────────────────────────────────────────────────────────
-
-  async function deletePhoto(photoId: string) {
-    setPhotos((prev) => prev.filter((p) => p.id !== photoId));
-    await fetch(`${API}/photos/${photoId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-
-  // ─── Client link ───────────────────────────────────────────────────────────
-
-  function copyLink() {
-    if (!gallery) return;
-    navigator.clipboard.writeText(`${window.location.origin}/g/${gallery.slug}`);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
-  }
-
-  async function sendEmail() {
-    if (!gallery?.clientEmail) return;
-    setSendingEmail(true);
-    try {
-      await fetch(`${API}/galleries/manage/${id}/send-link`, {
-        method: 'POST',
-        headers: auth(),
-      });
-      setToast('Email envoyé à ' + gallery.clientEmail);
-    } finally {
-      setSendingEmail(false);
-    }
-  }
-
-  // ─── Render ────────────────────────────────────────────────────────────────
-
-  if (loading) return <LoadingSkeleton />;
-
-  const totalPhotos = photos.length + pendingPreviews.length;
-  const daysLeft = gallery?.expiresAt
-    ? Math.ceil((new Date(gallery.expiresAt).getTime() - Date.now()) / 86400000)
-    : null;
+  const d = daysLeft(g.expiresAt);
+  const unlocked = photos.filter((p) => p.unlocked).length;
+  const included = photos.filter((p) => p.unlocked && !p.paid).length;
+  const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/g/${g.slug}` : g.url;
 
   return (
-    <div className="min-h-screen bg-sand text-ink">
-      {/* Header */}
-      <header className="sticky top-0 z-30 glass border-b border-line">
-        <div className="px-6 md:px-20 h-16 flex items-center gap-4">
-          <Link
-            href="/admin/dashboard"
-            className="label text-muted hover:text-terracotta transition-colors flex items-center gap-2 shrink-0"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-            </svg>
-            Galeries
-          </Link>
-
-          <div className="flex-1 min-w-0 text-center">
-            <p className="font-serif text-xl truncate">{gallery?.title}</p>
-            <p className="label text-muted text-[11px]">
-              {totalPhotos} photo{totalPhotos !== 1 ? 's' : ''}
-              {daysLeft !== null && (
-                <span className={daysLeft <= 3 ? ' text-terracotta' : ''}> · {daysLeft}j restants</span>
-              )}
-            </p>
-          </div>
-
-          <button
-            onClick={() => { localStorage.removeItem('token'); router.push('/admin/login'); }}
-            className="label text-muted hover:text-terracotta transition-colors shrink-0"
-          >
-            Déconnexion
-          </button>
+    <AdminShell>
+      {/* En-tête galerie */}
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8 pb-6 border-b border-line">
+        <div className="flex flex-col gap-2 min-w-0">
+          <Link href="/admin/dashboard" className="label text-muted hover:text-terracotta">← Galeries</Link>
+          <h1 className="font-serif text-4xl md:text-5xl truncate">{g.title}</h1>
+          <p className="meta">
+            {g.clientName && <span>{g.clientName} · </span>}
+            <span className="num">{photos.length}</span> photo{photos.length > 1 ? "s" : ""} · <span className="num">{included}</span>/<span className="num">{g.maxSelection}</span> incluses utilisées · <span className="num">{unlocked}</span> déverrouillée{unlocked > 1 ? "s" : ""}
+          </p>
         </div>
-      </header>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`badge ${g.isArchived ? "" : d !== null && d <= 3 ? "badge-accent" : ""}`}>{g.isArchived ? "Archivée" : d === null ? `Pas encore ouverte · ${g.expiryDays} j` : d > 0 ? `Expire dans ${d} j` : "Expirée"}</span>
+          {g.hasPassword && <span className="badge">Mot de passe</span>}
+          <a href={publicUrl} target="_blank" rel="noreferrer" className="btn btn-ghost">Voir côté client</a>
+          <button onClick={copyLink} className={`btn ${copied ? "btn-accent" : "btn-primary"}`}>{copied ? "Lien copié" : "Copier le lien"}</button>
+        </div>
+      </div>
 
-      {/* Body */}
-      <div className="px-6 md:px-20 py-10 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-10 lg:gap-16">
-
-        {/* ── Left: settings panel ── */}
-        <aside className="space-y-6">
-
-          {/* Gallery settings */}
-          <Section title="Paramètres">
-            <Field label="Titre">
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input"
-                placeholder="Nom de la galerie"
-              />
+      <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-8 items-start">
+        {/* ── Colonne réglages ── */}
+        <aside className="flex flex-col gap-6">
+          <Section title="Informations" hint="Visibles par le client en haut de sa galerie.">
+            <Field label="Titre"><input className="input" value={form.title ?? ""} onChange={(e) => setF("title", e.target.value)} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Nom du client"><input className="input" value={form.clientName ?? ""} onChange={(e) => setF("clientName", e.target.value)} /></Field>
+              <Field label="Date de séance"><input type="date" className="input num" value={(form.eventDate as string) ?? ""} onChange={(e) => setF("eventDate", e.target.value)} /></Field>
+            </div>
+            <Field label="Message au client" hint="Quelques mots affichés sous le titre (remerciement, consignes, délai de livraison…).">
+              <textarea className="input min-h-[96px]" value={form.message ?? ""} onChange={(e) => setF("message", e.target.value)} maxLength={600} placeholder="Merci pour cette belle journée ! Choisissez vos photos préférées…" />
             </Field>
-            <Field label="Photos incluses">
-              <select
-                value={maxSelection}
-                onChange={(e) => setMaxSelection(Number(e.target.value))}
-                className="input"
-              >
-                {[10, 15, 20, 25, 30, 40, 50, 60, 80, 100].map((n) => (
-                  <option key={n} value={n}>{n} photos</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Email client">
-              <input
-                type="email"
-                value={clientEmail}
-                onChange={(e) => setClientEmail(e.target.value)}
-                className="input"
-                placeholder="client@email.com"
-              />
-            </Field>
-            <Field label="Téléphone">
-              <input
-                type="tel"
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                className="input"
-                placeholder="+33 6 00 00 00 00"
-              />
-            </Field>
-            <SaveButton onClick={saveGallery} loading={savingGallery} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email du client"><input type="email" className="input" value={form.clientEmail ?? ""} onChange={(e) => setF("clientEmail", e.target.value)} /></Field>
+              <Field label="Téléphone"><input type="tel" className="input" value={form.clientPhone ?? ""} onChange={(e) => setF("clientPhone", e.target.value)} /></Field>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => save(["title", "clientName", "eventDate", "message", "clientEmail", "clientPhone"])} disabled={saving} className="btn btn-primary">Enregistrer</button>
+              <button onClick={() => act("send-link", undefined, `Lien envoyé à ${g.clientEmail}`)} disabled={!g.clientEmail} className="btn btn-ghost" title={!g.clientEmail ? "Renseignez un email client" : ""}>Envoyer le lien par email</button>
+            </div>
           </Section>
 
-          {/* Client link */}
-          <Section title="Lien client">
-            <div className="flex items-center gap-2 border border-line px-3 py-2.5">
-              <span className="text-xs text-ink-soft truncate flex-1 font-mono">
-                /g/{gallery?.slug}
-              </span>
+          <Section title="Forfait & tarifs" hint="Laissez vide pour utiliser vos valeurs par défaut (Compte).">
+            <Field label="Photos incluses dans le forfait" hint="Nombre libre. Au-delà, chaque photo est facturée au prix ci-dessous.">
+              <input type="number" min={1} className="input num" value={form.maxSelection ?? 1} onChange={num("maxSelection")} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Prix photo suppl. (€)" hint={`Défaut : ${g.effective.extraPhotoPrice} €`}><input type="number" min={0} className="input num" value={form.extraPhotoPrice ?? ""} onChange={num("extraPhotoPrice")} placeholder={String(g.effective.extraPhotoPrice)} /></Field>
+              <Field label="Validité (jours)" hint="À partir de la 1re ouverture."><input type="number" min={1} className="input num" value={form.expiryDays ?? 30} onChange={num("expiryDays")} /></Field>
+              <Field label="Prolongation (€)" hint={`Défaut : ${g.effective.extensionPrice} €`}><input type="number" min={0} className="input num" value={form.extensionPrice ?? ""} onChange={num("extensionPrice")} placeholder={String(g.effective.extensionPrice)} /></Field>
+              <Field label="Durée prolongation (j)" hint={`Défaut : ${g.effective.extensionDays} j`}><input type="number" min={1} className="input num" value={form.extensionDays ?? ""} onChange={num("extensionDays")} placeholder={String(g.effective.extensionDays)} /></Field>
             </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={copyLink}
-                className={`btn flex-1 ${linkCopied ? 'btn-accent' : 'btn-ghost'}`}
-              >
-                {linkCopied ? 'Copié' : 'Copier'}
-              </button>
-              <button
-                onClick={sendEmail}
-                disabled={!clientEmail || sendingEmail}
-                title={!clientEmail ? 'Ajoutez un email client d\'abord' : 'Envoyer par email'}
-                className="btn btn-ghost flex-1"
-              >
-                {sendingEmail ? 'Envoi…' : 'Envoyer par email'}
-              </button>
+            <p className="help">Commission Track.Art en vigueur : <span className="num">{g.effective.commissionRate} %</span> sur chaque paiement client. Le prix d’une photo peut aussi être modifié individuellement dans la grille.</p>
+            <button onClick={() => save(["maxSelection", "extraPhotoPrice", "expiryDays", "extensionPrice", "extensionDays"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+          </Section>
+
+          <Section title="Accès & protection">
+            <Switch checked={!!form.allowHdDownload} onChange={(v) => { setF("allowHdDownload", v); }} label="Téléchargement HD après déblocage" hint="Désactivé : le client voit ses photos déverrouillées sans filigrane mais ne peut pas télécharger les originaux (livraison par vos soins)." />
+            <div className="flex flex-col gap-2 pt-3 border-t border-line">
+              <p className="subsection">Mot de passe de la galerie</p>
+              <p className="help">{g.hasPassword ? "Cette galerie est protégée. Saisissez un nouveau mot de passe pour le changer." : "Optionnel : le client devra le saisir en plus du lien."}</p>
+              <div className="flex gap-2">
+                <input className="input" placeholder={g.hasPassword ? "Nouveau mot de passe" : "Ex. lea2026"} value={form.password ?? ""} onChange={(e) => setF("password", e.target.value)} />
+                {g.hasPassword && <button onClick={() => api(`/galleries/manage/${id}`, { method: "PATCH", json: { password: null } }).then(() => { load(); notify("Mot de passe retiré"); })} className="btn btn-ghost shrink-0">Retirer</button>}
+              </div>
             </div>
-            {!clientEmail && (
-              <p className="text-xs text-muted text-center">
-                Ajoutez un email client pour envoyer le lien
-              </p>
+            <p className="help">Les previews sont toujours filigranées « {g.effective.watermarkText} » et en basse définition, et le téléchargement des previews est bloqué.</p>
+            <button onClick={() => save(["allowHdDownload", ...(form.password ? ["password"] : [])])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+          </Section>
+
+          <Section title="Validité" hint={g.firstOpenedAt ? `Ouverte pour la première fois le ${formatDate(g.firstOpenedAt)}.` : "Le compte à rebours démarre à la première ouverture du lien par le client."}>
+            {g.expiresAt && <p className="text-sm">Expire le <strong className="num">{formatDate(g.expiresAt)}</strong>{d !== null && d > 0 && <span className="meta"> · dans {d} jour{d > 1 ? "s" : ""}</span>}</p>}
+            <div className="flex flex-wrap gap-2 items-end">
+              <Field label="Offrir des jours"><input type="number" min={1} max={365} className="input num w-28" value={extendDays} onChange={(e) => setExtendDays(Number(e.target.value))} /></Field>
+              <button onClick={() => act("extend", { days: extendDays }, `Galerie prolongée de ${extendDays} jours`)} className="btn btn-outline">Prolonger gratuitement</button>
+              {g.firstOpenedAt && <button onClick={() => confirm("Réinitialiser ? Le compte à rebours repartira à la prochaine ouverture.") && act("reset-expiry", undefined, "Validité réinitialisée")} className="btn btn-ghost">Réinitialiser</button>}
+            </div>
+            {g.extensions.length > 0 && <ul className="flex flex-col gap-1 pt-2 border-t border-line">{g.extensions.map((x) => <li key={x.id} className="meta">{formatDate(x.createdAt)} · +{x.days} j · {x.amount ? euros(x.amount) : "offert"}</li>)}</ul>}
+          </Section>
+
+          <Section title="Ventes de cette galerie">
+            {g.payments.length === 0 ? <p className="help">Aucun paiement pour l’instant.</p> : (
+              <ul className="flex flex-col gap-2">
+                {g.payments.map((p) => (
+                  <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span>{TYPE[p.type] ?? p.type}{p.photoIds?.length ? <span className="meta"> · {p.photoIds.length} photo{p.photoIds.length > 1 ? "s" : ""}</span> : null}<span className="meta block">{formatDate(p.createdAt)}</span></span>
+                    <span className="text-right"><span className="num">{euros(p.amount)}</span><span className="meta block">net {euros(p.netAmount)}</span></span>
+                    <span className={`badge ${p.status === "completed" ? "badge-accent" : ""}`}>{p.status === "completed" ? "Payé" : "En attente"}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </Section>
 
-          {/* Pricing */}
-          <Section title="Tarifs">
-            <Field label="Prix / photo extra (€)">
-              <input
-                type="number"
-                min={0}
-                value={extraPhotoPrice}
-                onChange={(e) => setExtraPhotoPrice(Number(e.target.value))}
-                className="input"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Extension (€)">
-                <input
-                  type="number"
-                  min={0}
-                  value={extensionPrice}
-                  onChange={(e) => setExtensionPrice(Number(e.target.value))}
-                  className="input"
-                />
-              </Field>
-              <Field label="Durée (j)">
-                <input
-                  type="number"
-                  min={1}
-                  value={extensionDays}
-                  onChange={(e) => setExtensionDays(Number(e.target.value))}
-                  className="input"
-                />
-              </Field>
-            </div>
-            <SaveButton onClick={savePrices} loading={savingPrices} />
-          </Section>
-
-          {/* Danger zone */}
-          <Section title="Zone critique">
-            <button
-              onClick={async () => {
-                if (!confirm(`Supprimer "${gallery?.title}" et toutes ses photos ?`)) return;
-                await fetch(`${API}/galleries/${id}`, {
-                  method: 'DELETE',
-                  headers: { Authorization: `Bearer ${token}` },
-                });
-                router.push('/admin/dashboard');
-              }}
-              className="btn btn-ghost w-full text-terracotta hover:text-terracotta hover:border-terracotta"
-            >
-              Supprimer la galerie
-            </button>
+          <Section title="Archivage & suppression">
+            <Switch checked={!!form.isArchived} onChange={(v) => { setF("isArchived", v); api(`/galleries/manage/${id}`, { method: "PATCH", json: { isArchived: v } }).then(() => { load(); notify(v ? "Galerie archivée" : "Galerie réactivée"); }); }} label="Archiver la galerie" hint="Le lien client devient inaccessible ; les photos sont conservées jusqu'à l'expiration." />
+            <button onClick={remove} className="btn btn-ghost text-terracotta hover:border-terracotta self-start">Supprimer définitivement</button>
           </Section>
         </aside>
 
-        {/* ── Right: photo section ── */}
-        <main className="space-y-5">
-
-          {/* Upload zone */}
-          <div
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            onClick={() => !uploading && fileInputRef.current?.click()}
-            className={`relative border border-dashed transition-all duration-200 cursor-pointer bg-sand-deep/40
-              ${isDragging
-                ? 'border-terracotta bg-sand-deep'
-                : 'border-line hover:border-ink'
-              }
-              ${uploading ? 'cursor-default' : ''}`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/tiff"
-              multiple
-              className="hidden"
-              onChange={onFileInput}
-            />
-
-            <div className="py-10 flex flex-col items-center gap-3 select-none">
+        {/* ── Colonne photos ── */}
+        <main className="flex flex-col gap-5">
+          <div onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }} onDrop={onDrop} onClick={() => !uploading && fileRef.current?.click()}
+            className={`card border-dashed cursor-pointer transition-all ${dragging ? "border-terracotta bg-sand-deep" : "hover:border-ink"}`}>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/tiff" multiple className="hidden" onChange={(e) => { handleFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            <div className="py-10 flex flex-col items-center gap-3 select-none text-center px-6">
               {uploading ? (
                 <>
-                  <UploadIcon className="w-8 h-8 text-terracotta animate-bounce" />
-                  <p className="label text-ink-soft">
-                    Upload en cours...
-                  </p>
-                  <div className="w-48 h-0.5 bg-line rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-terracotta transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted">{uploadProgress}%</p>
+                  <p className="label text-ink-soft">Upload et traitement en cours…</p>
+                  <div className="w-56 h-1 bg-line overflow-hidden"><div className="h-full bg-terracotta transition-all" style={{ width: `${progress}%` }} /></div>
+                  <p className="meta">{progress} % · miniatures et filigrane générés à l'arrivée</p>
                 </>
               ) : (
                 <>
-                  <UploadIcon
-                    className={`w-8 h-8 transition-colors ${isDragging ? 'text-terracotta' : 'text-muted'}`}
-                  />
-                  <p className={`font-serif text-xl transition-colors ${isDragging ? 'text-terracotta' : 'text-ink'}`}>
-                    {isDragging ? 'Déposez vos photos' : 'Glissez-déposez vos photos ici'}
-                  </p>
-                  <p className="text-sm text-muted">
-                    ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC · 50 Mo max
-                  </p>
+                  <svg className={`w-8 h-8 ${dragging ? "text-terracotta" : "text-muted"}`} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                  <p className="font-serif text-2xl">{dragging ? "Déposez vos photos" : "Glissez-déposez vos photos ici"}</p>
+                  <p className="meta">ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC, TIFF · 80 Mo par fichier · 100 fichiers par envoi</p>
                 </>
               )}
             </div>
           </div>
 
-          {/* Stats bar */}
-          {(photos.length > 0 || pendingPreviews.length > 0) && (
-            <div className="flex items-center justify-between text-sm text-muted border-b border-line pb-3">
-              <span>
-                <span className="text-ink">{totalPhotos}</span> photo{totalPhotos !== 1 ? 's' : ''}
-                {gallery && (
-                  <span> · {photos.filter((p) => p.unlocked).length} déverrouillée{photos.filter((p) => p.unlocked).length !== 1 ? 's' : ''}</span>
-                )}
-              </span>
-              <span className="label">
-                {maxSelection} incluses
-              </span>
+          {(photos.length > 0 || pending.length > 0) && (
+            <div className="flex items-center justify-between text-sm border-b border-line pb-3">
+              <span className="meta"><span className="num text-ink">{photos.length + pending.length}</span> photos · survolez une photo pour la gérer</span>
+              <span className="label text-muted">Couverture : {g.coverPhotoId ? "définie" : "1re photo"}</span>
             </div>
           )}
 
-          {/* Photo grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-
-            {/* Pending previews (uploading) */}
-            {pendingPreviews.map((p) => (
-              <div key={p.localId} className="relative aspect-square overflow-hidden bg-sand-deep">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3">
+            {pending.map((p) => (
+              <div key={p.localId} className="relative aspect-square overflow-hidden bg-sand-deep tile">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt={p.name} className="w-full h-full object-cover opacity-40" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-line border-t-terracotta rounded-full animate-spin" />
+                <img src={p.url} alt="" className="w-full h-full object-cover opacity-40" />
+                <div className="absolute inset-0 flex items-center justify-center"><div className="w-5 h-5 border-2 border-line border-t-terracotta rounded-full animate-spin" /></div>
+              </div>
+            ))}
+            {photos.map((p) => (
+              <div key={p.id} className="relative aspect-square overflow-hidden group bg-sand-deep tile">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.previewUrl} alt={p.filename ?? ""} className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75" loading="lazy" />
+                <div className="absolute top-2 left-2 flex gap-1.5">
+                  {p.isCover && <span className="badge badge-ink !py-1 !px-1.5">Couverture</span>}
+                  {p.unlocked && <span className={`badge !py-1 !px-1.5 ${p.paid ? "badge-accent" : ""}`} style={{ background: "#EFE6DA" }}>{p.paid ? "Payée" : "Incluse"}</span>}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between gap-1">
+                  {editPrice?.id === p.id ? (
+                    <input autoFocus type="number" min={0} className="w-16 bg-sand text-ink text-xs px-1.5 py-1 outline-none text-center num" value={editPrice.v} onChange={(e) => setEditPrice({ id: p.id, v: e.target.value })} onBlur={commitPrice} onKeyDown={(e) => { if (e.key === "Enter") commitPrice(); if (e.key === "Escape") setEditPrice(null); }} />
+                  ) : (
+                    <button onClick={() => setEditPrice({ id: p.id, v: String(p.price) })} className="text-sand text-xs num hover:text-terracotta-soft" title="Modifier le prix">{p.price} € ✎</button>
+                  )}
+                  <div className="flex gap-1">
+                    {!p.isCover && <IconBtn title="Définir comme couverture" onClick={() => photoAction(p, "cover")}><path d="M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5" /></IconBtn>}
+                    {p.unlocked ? <IconBtn title="Reverrouiller" onClick={() => photoAction(p, "lock")}><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></IconBtn> : <IconBtn title="Offrir (déverrouiller)" onClick={() => photoAction(p, "unlock")}><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 7.5-2" /></IconBtn>}
+                    <IconBtn title="Supprimer" onClick={() => photoAction(p, "delete")}><path d="M6 6l12 12M18 6L6 18" /></IconBtn>
+                  </div>
                 </div>
               </div>
             ))}
-
-            {/* Uploaded photos */}
-            {photos.map((photo) => (
-              <PhotoCard
-                key={photo.id}
-                photo={photo}
-                isEditingPrice={editingPriceId === photo.id}
-                editingPriceVal={editingPriceVal}
-                priceInputRef={editingPriceId === photo.id ? priceInputRef : undefined}
-                onEditPrice={() => startEditPrice(photo)}
-                onPriceChange={(v) => setEditingPriceVal(v)}
-                onPriceCommit={() => commitPrice(photo.id)}
-                onPriceKeyDown={(e) => {
-                  if (e.key === 'Enter') commitPrice(photo.id);
-                  if (e.key === 'Escape') setEditingPriceId(null);
-                }}
-                onDelete={() => deletePhoto(photo.id)}
-              />
-            ))}
           </div>
-
-          {/* Empty state */}
-          {photos.length === 0 && pendingPreviews.length === 0 && !uploading && (
-            <div className="py-16 text-center font-serif text-xl text-muted">
-              Aucune photo pour l’instant — glissez-déposez pour commencer
-            </div>
-          )}
+          {photos.length === 0 && pending.length === 0 && !uploading && <p className="py-12 text-center font-serif text-xl text-muted">Aucune photo pour l’instant — glissez-déposez pour commencer.</p>}
         </main>
       </div>
-
-      {/* Toast */}
-      {toast && <Toast message={toast} onDone={() => setToast('')} />}
-    </div>
+      {toast && <Toast message={toast.m} error={toast.e} onDone={() => setToast(null)} />}
+    </AdminShell>
   );
 }
 
-// ─── PhotoCard ─────────────────────────────────────────────────────────────────
-
-type PhotoCardProps = {
-  photo: AdminPhoto;
-  isEditingPrice: boolean;
-  editingPriceVal: string;
-  priceInputRef?: React.RefObject<HTMLInputElement | null>;
-  onEditPrice: () => void;
-  onPriceChange: (v: string) => void;
-  onPriceCommit: () => void;
-  onPriceKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onDelete: () => void;
-};
-
-function PhotoCard({
-  photo,
-  isEditingPrice,
-  editingPriceVal,
-  priceInputRef,
-  onEditPrice,
-  onPriceChange,
-  onPriceCommit,
-  onPriceKeyDown,
-  onDelete,
-}: PhotoCardProps) {
+function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <div className="relative aspect-square overflow-hidden group bg-sand-deep tile">
-      {/* Preview image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photo.previewUrl}
-        alt=""
-        className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75"
-        loading="lazy"
-      />
-
-      {/* Delete button */}
-      <button
-        onClick={onDelete}
-        aria-label="Supprimer"
-        className="absolute top-2 right-2 w-7 h-7 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-      >
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-      {/* Status badge */}
-      {photo.unlocked && (
-        <div className="absolute top-2 left-2 bg-terracotta text-sand text-[10px] tracking-[0.16em] uppercase px-2 py-1">
-          Déverrouillée
-        </div>
-      )}
-
-      {/* Bottom bar: price */}
-      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-ink/70 to-transparent pt-5 pb-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        {isEditingPrice ? (
-          <div className="flex items-center gap-1">
-            <input
-              ref={priceInputRef as React.RefObject<HTMLInputElement>}
-              type="number"
-              min={0}
-              value={editingPriceVal}
-              onChange={(e) => onPriceChange(e.target.value)}
-              onBlur={onPriceCommit}
-              onKeyDown={onPriceKeyDown}
-              className="w-14 bg-sand text-ink text-xs px-1.5 py-0.5 outline-none text-center"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <span className="text-sand text-xs">€</span>
-          </div>
-        ) : (
-          <button
-            onClick={onEditPrice}
-            className="text-xs text-sand hover:text-terracotta-soft transition-colors flex items-center gap-1"
-          >
-            <span>{photo.price}€</span>
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Shared UI pieces ──────────────────────────────────────────────────────────
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="card p-5 space-y-4">
-      <h2 className="label text-terracotta pb-2 border-b border-line">
-        {title}
-      </h2>
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <label className="label text-muted text-[11px]">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function SaveButton({ onClick, loading }: { onClick: () => void; loading: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={loading}
-      className="btn btn-outline w-full mt-1"
-    >
-      {loading ? 'Sauvegarde…' : 'Enregistrer'}
+    <button onClick={onClick} title={title} aria-label={title} className="w-7 h-7 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center transition-colors">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
     </button>
-  );
-}
-
-function UploadIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-    </svg>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="min-h-screen bg-sand text-ink">
-      <div className="sticky top-0 bg-sand border-b border-line h-16" />
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-        <div className="space-y-4">
-          {[80, 60, 100, 40].map((w, i) => (
-            <div key={i} className="h-3 bg-line rounded animate-pulse" style={{ width: `${w}%` }} />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-0.5">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-sand-deep animate-pulse" />
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }

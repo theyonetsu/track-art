@@ -1,11 +1,18 @@
 import { Injectable, BadRequestException, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GalleriesService } from '../galleries/galleries.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private galleries: GalleriesService, private email: EmailService) {}
+
+  private split(amount: number, rate: number) {
+    const platformFee = Math.round(amount * rate) / 100;
+    return { commissionRate: rate, platformFee, netAmount: Math.round((amount - platformFee) * 100) / 100 };
+  }
 
   private get base() {
     return process.env.PAYPAL_MODE === 'live'
@@ -69,8 +76,10 @@ export class PaymentsService {
     return { included, extras, total };
   }
 
-  async createOrder(galleryId: string, photoIds: string[]) {
+  async createOrder(galleryId: string, photoIds: string[], galleryToken?: string) {
     if (!Array.isArray(photoIds) || !photoIds.length) throw new BadRequestException('Aucune photo sélectionnée');
+    const gallery = await this.galleries.assertPublicAccess(galleryId, galleryToken);
+    const settings = await this.galleries.effectiveSettings(gallery);
     const { included, extras, total } = await this.splitSelection(galleryId, photoIds);
     if (total <= 0) {
       throw new BadRequestException('Cette sélection est incluse dans le forfait : utilisez la confirmation gratuite');
@@ -78,7 +87,7 @@ export class PaymentsService {
 
     const allIds = [...included, ...extras].map((p) => p.id);
     const payment = await this.prisma.payment.create({
-      data: { galleryId, type: 'BuyExtraPhotos', amount: total, photoIds: allIds },
+      data: { galleryId, userId: gallery.userId, type: 'BuyExtraPhotos', amount: total, photoIds: allIds, ...this.split(total, settings.commissionRate) },
     });
 
     const token = await this.getToken();
@@ -145,6 +154,17 @@ export class PaymentsService {
       data: { status: 'completed' },
     });
 
+    if (payment.type === 'ExtendGallery') {
+      const g = await this.prisma.gallery.findUnique({ where: { id: payment.galleryId } });
+      const settings = await this.galleries.effectiveSettings(g);
+      const base = g.expiresAt && g.expiresAt > new Date() ? g.expiresAt : new Date();
+      const expiresAt = new Date(base.getTime() + settings.extensionDays * 86400000);
+      await this.prisma.extension.create({ data: { galleryId: g.id, days: settings.extensionDays, amount: payment.amount } });
+      await this.prisma.gallery.update({ where: { id: g.id }, data: { expiresAt } });
+      this.logger.log(`Gallery ${g.id} extended by ${settings.extensionDays} days`);
+      return { success: true, extended: true, expiresAt };
+    }
+
     // Déverrouillage : les photos incluses restent gratuites, le reste est marqué payé
     const { included, extras } = await this.splitSelection(payment.galleryId, payment.photoIds).catch(() => ({ included: [], extras: [] } as any));
     if (included.length) {
@@ -158,6 +178,41 @@ export class PaymentsService {
 
     this.logger.log(`Payment captured: ${internalId} — ${payment.photoIds.length} photos déverrouillées`);
     return { success: true, photoIds: payment.photoIds };
+  }
+
+  /** Prolongation payante de la galerie (prix et durée du photographe) */
+  async createExtensionOrder(galleryId: string, token?: string) {
+    const gallery = await this.galleries.assertPublicAccess(galleryId, token);
+    const settings = await this.galleries.effectiveSettings(gallery);
+    const total = settings.extensionPrice;
+    if (total <= 0) throw new BadRequestException('La prolongation n\'est pas payante sur cette galerie');
+
+    const payment = await this.prisma.payment.create({
+      data: { galleryId, userId: gallery.userId, type: 'ExtendGallery', amount: total, photoIds: [], ...this.split(total, settings.commissionRate) },
+    });
+    const accessToken = await this.getToken();
+    const res = await fetch(`${this.base}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': payment.id },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{ reference_id: payment.id, amount: { currency_code: 'EUR', value: total.toFixed(2) }, description: `Track.Art — Prolongation de galerie (${settings.extensionDays} jours)` }],
+      }),
+    });
+    const order = await res.json() as any;
+    if (!order.id) { this.logger.error('PayPal createOrder error: ' + JSON.stringify(order)); throw new BadRequestException('Erreur création commande PayPal'); }
+    await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: order.id } });
+    return { paypalOrderId: order.id, internalId: payment.id, total, days: settings.extensionDays };
+  }
+
+  /** Historique des ventes du photographe */
+  async listForUser(actor: { sub: string; role: string }) {
+    return this.prisma.payment.findMany({
+      where: { ...(actor.role === 'SUPERADMIN' ? {} : { userId: actor.sub }) },
+      include: { gallery: { select: { id: true, title: true, clientName: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
   }
 
   async createPayment(data: any) {

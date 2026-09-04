@@ -12,8 +12,8 @@ async function main() {
     console.log(`✓ Admin déjà existant : ${email}`);
   } else {
     const hash = await bcrypt.hash(password, 12);
-    await prisma.user.create({ data: { email, password: hash } });
-    console.log(`✓ Admin créé : ${email}`);
+    await prisma.user.create({ data: { email, password: hash, role: 'SUPERADMIN', name: 'Administrateur', studioName: 'Track.Art' } });
+    console.log(`✓ Super-admin créé : ${email}`);
     console.log(`  Mot de passe : ${password}`);
     console.log(`\n  ⚠️  Changez ce mot de passe après la première connexion.\n`);
   }

@@ -13,6 +13,7 @@
 
   --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
   --font-sans: var(--font-jost), "Jost", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-mono), "DM Mono", "SFMono-Regular", Menlo, monospace;
 
   /* Relief : ombres chaudes superposées (teintées ink, jamais grises) */
   --shadow-soft: 0 1px 2px rgba(34, 27, 24, 0.06), 0 8px 24px -12px rgba(34, 27, 24, 0.22);
@@ -34,15 +35,35 @@ body {
 
 @layer components {
 /* Libellés majuscules espacés */
+/* Hiérarchie typographique :
+   - titres et noms : serif (Cormorant)
+   - texte courant : Jost
+   - libellés, options, compteurs, badges, métadonnées : mono (DM Mono) */
 .label {
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 400;
 }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.meta { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.04em; color: var(--color-muted); }
+.eyebrow { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.28em; text-transform: uppercase; color: var(--color-terracotta); }
+.badge { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 0.3rem 0.55rem; border: 1px solid var(--color-line); background: rgba(255,255,255,0.35); }
+.badge-accent { border-color: var(--color-terracotta); color: var(--color-terracotta); }
+.badge-ink { background: var(--color-ink); color: var(--color-sand); border-color: var(--color-ink); }
+.field-label { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-muted); }
+.help { font-size: 0.8rem; color: var(--color-muted); font-weight: 300; line-height: 1.5; }
+.subsection { font-family: var(--font-sans); font-size: 0.95rem; font-weight: 500; letter-spacing: 0.02em; }
+/* Interrupteur */
+.switch { position: relative; width: 44px; height: 24px; border-radius: 999px; background: var(--color-line); transition: background 0.2s; flex-shrink: 0; cursor: pointer; border: none; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(34,27,24,0.25); transition: transform 0.25s var(--ease-out-expo); }
+.switch[aria-checked="true"] { background: var(--color-terracotta); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
 
 /* Boutons */
 .btn {
+  font-family: var(--font-mono);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -155,3 +176,5 @@ body {
 }
 
 /* rev 2 */
+
+/* rafraîchissement */

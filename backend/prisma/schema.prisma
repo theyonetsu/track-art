@@ -7,37 +7,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Photographe (ou super-administrateur de la plateforme)
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
   password    String
-  isAdmin     Boolean  @default(true)
+  role        String   @default("PHOTOGRAPHER") // PHOTOGRAPHER | SUPERADMIN
+  isAdmin     Boolean  @default(true) // conservé pour compatibilité
+  name        String?  // Prénom Nom
+  studioName  String?  // Nom affiché aux clients (ex. « Studio Lumière »)
+  phone       String?
+  website     String?
   totpSecret  String?
   totpEnabled Boolean  @default(false)
-  createdAt   DateTime @default(now())
+
+  // Réglages par défaut appliqués aux nouvelles galeries
+  defaultIncluded       Int    @default(30)
+  defaultExtraPhotoPrice Int   @default(2)
+  defaultExtensionPrice Int    @default(5)
+  defaultExtensionDays  Int    @default(7)
+  defaultExpiryDays     Int    @default(30)
+  watermarkText         String? // texte du filigrane (défaut : studioName ou TRACK.ART)
+
+  galleries Gallery[]
+  payments  Payment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
+/// Réglages globaux de la plateforme (une seule ligne)
 model Settings {
   id              String   @id @default(uuid())
   extensionPrice  Int      @default(5)
   extensionDays   Int      @default(7)
   extraPhotoPrice Int      @default(2)
+  commissionRate  Float    @default(10) // % prélevé par Track.Art sur les ventes
   updatedAt       DateTime @updatedAt
 }
 
 model Gallery {
   id            String      @id @default(uuid())
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   title         String
   slug          String      @unique @default(uuid())
   languages     String[]    @default(["fr"])
-  maxSelection  Int         @default(30)
+
+  // Client
+  clientName    String?
+  clientEmail   String?
+  clientPhone   String?
+  eventDate     DateTime?
+  message       String?     // mot du photographe affiché en haut de la galerie
+
+  // Forfait & tarifs (null = valeur par défaut du photographe)
+  maxSelection    Int       @default(30) // photos incluses, nombre libre
+  extraPhotoPrice Int?
+  extensionPrice  Int?
+  extensionDays   Int?
+  expiryDays      Int       @default(30)
+
+  // Accès & présentation
+  password        String?   // hash bcrypt, null = lien seul
+  allowHdDownload Boolean   @default(true)
+  coverPhotoId    String?
+  isArchived      Boolean   @default(false)
+
   firstOpenedAt DateTime?
   expiresAt     DateTime?
   createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
   photos        Photo[]
   extensions    Extension[]
-  clientEmail   String?
-  clientPhone   String?
+  payments      Payment[]
 }
 
 model Photo {
@@ -46,9 +88,13 @@ model Photo {
   originalKey  String
   previewKey   String
   watermarkKey String
+  filename     String?
+  width        Int?
+  height       Int?
   unlocked     Boolean  @default(false)
   paid         Boolean  @default(false)
   price        Int      @default(2)
+  sortOrder    Int      @default(0)
   createdAt    DateTime @default(now())
   gallery      Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
 }
@@ -63,12 +109,18 @@ model Extension {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
-  galleryId String
-  type      String
-  amount    Int
-  status    String   @default("pending")
-  paypalId  String?
-  photoIds  String[]
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  galleryId      String
+  gallery        Gallery  @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type           String   // BuyExtraPhotos | ExtendGallery
+  amount         Int      // total payé par le client (€)
+  commissionRate Float    @default(0) // % au moment du paiement
+  platformFee    Float    @default(0) // part Track.Art (€)
+  netAmount      Float    @default(0) // part photographe (€)
+  status         String   @default("pending")
+  paypalId       String?
+  photoIds       String[]
+  createdAt      DateTime @default(now())
 }

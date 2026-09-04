@@ -1,0 +1,54 @@
+-- Comptes photographes, options par galerie, commission plateforme
+
+-- User
+ALTER TABLE "User" ADD COLUMN "role" TEXT NOT NULL DEFAULT 'PHOTOGRAPHER';
+ALTER TABLE "User" ADD COLUMN "name" TEXT;
+ALTER TABLE "User" ADD COLUMN "studioName" TEXT;
+ALTER TABLE "User" ADD COLUMN "phone" TEXT;
+ALTER TABLE "User" ADD COLUMN "website" TEXT;
+ALTER TABLE "User" ADD COLUMN "defaultIncluded" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "User" ADD COLUMN "defaultExtraPhotoPrice" INTEGER NOT NULL DEFAULT 2;
+ALTER TABLE "User" ADD COLUMN "defaultExtensionPrice" INTEGER NOT NULL DEFAULT 5;
+ALTER TABLE "User" ADD COLUMN "defaultExtensionDays" INTEGER NOT NULL DEFAULT 7;
+ALTER TABLE "User" ADD COLUMN "defaultExpiryDays" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "User" ADD COLUMN "watermarkText" TEXT;
+ALTER TABLE "User" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- Le premier compte existant devient super-administrateur
+UPDATE "User" SET "role" = 'SUPERADMIN' WHERE "id" = (SELECT "id" FROM "User" ORDER BY "createdAt" ASC LIMIT 1);
+
+-- Settings
+ALTER TABLE "Settings" ADD COLUMN "commissionRate" DOUBLE PRECISION NOT NULL DEFAULT 10;
+
+-- Gallery
+ALTER TABLE "Gallery" ADD COLUMN "userId" TEXT;
+ALTER TABLE "Gallery" ADD COLUMN "clientName" TEXT;
+ALTER TABLE "Gallery" ADD COLUMN "eventDate" TIMESTAMP(3);
+ALTER TABLE "Gallery" ADD COLUMN "message" TEXT;
+ALTER TABLE "Gallery" ADD COLUMN "extraPhotoPrice" INTEGER;
+ALTER TABLE "Gallery" ADD COLUMN "extensionPrice" INTEGER;
+ALTER TABLE "Gallery" ADD COLUMN "extensionDays" INTEGER;
+ALTER TABLE "Gallery" ADD COLUMN "expiryDays" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "Gallery" ADD COLUMN "password" TEXT;
+ALTER TABLE "Gallery" ADD COLUMN "allowHdDownload" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "Gallery" ADD COLUMN "coverPhotoId" TEXT;
+ALTER TABLE "Gallery" ADD COLUMN "isArchived" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Gallery" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "Gallery" ADD CONSTRAINT "Gallery_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Les galeries existantes sont rattachées au premier compte
+UPDATE "Gallery" SET "userId" = (SELECT "id" FROM "User" ORDER BY "createdAt" ASC LIMIT 1) WHERE "userId" IS NULL;
+
+-- Photo
+ALTER TABLE "Photo" ADD COLUMN "filename" TEXT;
+ALTER TABLE "Photo" ADD COLUMN "width" INTEGER;
+ALTER TABLE "Photo" ADD COLUMN "height" INTEGER;
+ALTER TABLE "Photo" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0;
+
+-- Payment
+ALTER TABLE "Payment" ADD COLUMN "userId" TEXT;
+ALTER TABLE "Payment" ADD COLUMN "commissionRate" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Payment" ADD COLUMN "platformFee" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Payment" ADD COLUMN "netAmount" DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_galleryId_fkey" FOREIGN KEY ("galleryId") REFERENCES "Gallery"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

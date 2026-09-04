@@ -1,6 +1,6 @@
 # Track.Art
 
-SaaS de galeries photo pour photographes : le client reçoit un lien privé, choisit ses photos incluses dans son forfait (15 / 30 / 60), achète les extras via PayPal et télécharge les HD sans filigrane. La galerie expire 30 jours après la première ouverture.
+Plateforme de galeries photo pour photographes (multi-comptes, commission sur les ventes). Chaque photographe crée ses galeries, fixe librement le nombre de photos incluses, les prix, la durée de validité, un mot de passe, un message ; son client reçoit un lien privé, sélectionne, achète les extras via PayPal et télécharge les HD sans filigrane. La galerie expire N jours après la première ouverture.
 
 ## Lancer en local (Windows)
 
@@ -15,8 +15,8 @@ docker compose up -d
 # 2. Backend (NestJS) — terminal 1
 cd backend
 npm install
-npx prisma migrate dev        # applique les migrations + régénère le client Prisma
-npm run seed                  # crée l'admin : admin@track.art / ChangeMe123!
+npx prisma migrate dev        # applique les migrations + régénère le client Prisma (à refaire après chaque changement de schéma)
+npm run seed                  # crée le super-admin : admin@track.art / ChangeMe123!
 npm run start:dev             # http://localhost:3001
 
 # 3. Frontend (Next.js) — terminal 2
@@ -37,13 +37,22 @@ Console MinIO (voir les fichiers stockés) : http://localhost:9001 (admin / admi
 
 En production, remplacer MinIO par Cloudflare R2 : définir `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET` (le backend bascule automatiquement sur R2 si `R2_ENDPOINT` est défini).
 
+## Comptes et rôles
+
+- **Photographe** (`/inscription`) : voit uniquement ses galeries, règle ses valeurs par défaut (`/admin/compte`), suit ses ventes (`/admin/ventes`).
+- **Super-admin** (premier compte, seed) : voit tout, règle la commission et les valeurs plateforme (`/admin/plateforme`).
+- Client : aucun compte. Lien unique + mot de passe optionnel (jeton d'accès 14 jours dans son navigateur).
+
 ## Logique du forfait
 
-- Chaque galerie a `maxSelection` photos incluses (15 / 30 / 60).
+- Chaque galerie a `maxSelection` photos incluses (nombre libre, défaut = `user.defaultIncluded`).
 - Le client sélectionne librement ; les N premières sont incluses, les suivantes sont facturées au prix de chaque photo (modifiable par l'admin, défaut 2 €).
 - Sélection sans extra → `POST /galleries/:slug/confirm-selection` (gratuit).
 - Sélection avec extras → PayPal (`/payments/create-order` puis `/payments/capture-order`), déverrouillage automatique après capture.
 - Les photos déverrouillées gratuitement sont `paid=false`, les extras `paid=true` : c'est ce qui permet de calculer le quota restant.
+- Prolongation : gratuite par le photographe (`POST /galleries/manage/:id/extend`) ou payante par le client (`POST /payments/create-extension-order`).
+- Chaque `Payment` enregistre `commissionRate`, `platformFee` (part Track.Art) et `netAmount` (part photographe).
+- Tarifs effectifs : valeur de la galerie → sinon défaut du photographe → sinon réglage plateforme.
 
 ## Déploiement (Railway)
 

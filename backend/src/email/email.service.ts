@@ -38,7 +38,7 @@ export class EmailService implements OnModuleInit {
     return !!process.env.SMTP_HOST && !!process.env.SMTP_USER;
   }
 
-  async sendGalleryLink(to: string, galleryTitle: string, galleryUrl: string) {
+  async sendGalleryLink(to: string, galleryTitle: string, galleryUrl: string, studioName?: string) {
     if (!this.isConfigured()) {
       this.logger.warn('SMTP non configuré — email non envoyé');
       return;
@@ -51,13 +51,13 @@ export class EmailService implements OnModuleInit {
         html: this.wrapTemplate(`
           <h1 style="color:#1a1a1a;font-size:24px;margin-bottom:16px;">Votre galerie photo est prête</h1>
           <p style="color:#444;line-height:1.6;">Bonjour,</p>
-          <p style="color:#444;line-height:1.6;">Votre photographe a partagé la galerie <strong>${galleryTitle}</strong> avec vous.</p>
+          <p style="color:#444;line-height:1.6;">${studioName ? `<strong>${studioName}</strong> a` : 'Votre photographe a'} partagé la galerie <strong>${galleryTitle}</strong> avec vous.</p>
           <p style="margin:32px 0;">
-            <a href="${galleryUrl}" style="background:#1a1a1a;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
+            <a href="${galleryUrl}" style="background:#221B18;color:#EFE6DA;padding:14px 28px;text-decoration:none;font-weight:bold;letter-spacing:1px;display:inline-block;">
               Voir ma galerie
             </a>
           </p>
-          <p style="color:#888;font-size:14px;">Ce lien est valable 30 jours à partir de votre première ouverture.</p>
+          <p style="color:#888;font-size:14px;">Ce lien est personnel. La galerie reste ouverte pendant une durée limitée à partir de votre première visite.</p>
         `),
       });
       this.logger.log(`Lien galerie envoyé à ${to}`);
@@ -79,7 +79,7 @@ export class EmailService implements OnModuleInit {
           <p style="color:#444;line-height:1.6;">La galerie <strong>${galleryTitle}</strong> expire dans <strong>${days} jour${days > 1 ? 's' : ''}</strong>.</p>
           <p style="color:#444;line-height:1.6;">Sélectionnez et téléchargez vos photos avant cette date.</p>
           <p style="margin:32px 0;">
-            <a href="${galleryUrl}" style="background:#1a1a1a;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
+            <a href="${galleryUrl}" style="background:#221B18;color:#EFE6DA;padding:14px 28px;text-decoration:none;font-weight:bold;letter-spacing:1px;display:inline-block;">
               Accéder à ma galerie
             </a>
           </p>
@@ -102,7 +102,7 @@ export class EmailService implements OnModuleInit {
           <h1 style="color:#27ae60;font-size:24px;margin-bottom:16px;">Paiement confirmé ✓</h1>
           <p style="color:#444;line-height:1.6;"><strong>${photoCount} photo${photoCount > 1 ? 's' : ''}</strong> de la galerie <strong>${galleryTitle}</strong> ont été déverrouillées.</p>
           <p style="margin:32px 0;">
-            <a href="${galleryUrl}" style="background:#1a1a1a;color:white;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;display:inline-block;">
+            <a href="${galleryUrl}" style="background:#221B18;color:#EFE6DA;padding:14px 28px;text-decoration:none;font-weight:bold;letter-spacing:1px;display:inline-block;">
               Télécharger mes photos
             </a>
           </p>
@@ -116,10 +116,10 @@ export class EmailService implements OnModuleInit {
 
   private wrapTemplate(content: string): string {
     return `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+      <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;padding:32px;background:#EFE6DA;color:#221B18;">
         ${content}
         <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
-        <p style="color:#bbb;font-size:12px;text-align:center;">Track.Art — Galeries photo professionnelles</p>
+        <p style="color:#7C6C62;font-size:12px;text-align:center;letter-spacing:2px;">TRACK.ART — GALERIES PRIVÉES POUR PHOTOGRAPHES</p>
       </div>`;
   }
 }

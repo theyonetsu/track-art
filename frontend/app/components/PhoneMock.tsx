@@ -1,11 +1,11 @@
 /** Maquette statique de la galerie client, dans un cadre de téléphone. */
 const tiles = [
-  { h: 150, bg: "linear-gradient(160deg,#E8D9C9,#C39A80)", sel: true },
-  { h: 110, bg: "linear-gradient(160deg,#F1E3D4,#B88A6D)" },
-  { h: 110, bg: "linear-gradient(160deg,#EAD4C2,#9E6B52)" },
-  { h: 150, bg: "linear-gradient(160deg,#E4CFBB,#A9795E)", sel: true },
-  { h: 130, bg: "linear-gradient(160deg,#EDD9C8,#BC8F73)" },
-  { h: 110, bg: "linear-gradient(160deg,#F0E2D3,#C79C82)" },
+  { h: 150, bg: "url(/showcase/reception-bokeh.webp) center/cover", sel: true },
+  { h: 110, bg: "url(/showcase/lumiere-fenetre.webp) center/cover" },
+  { h: 110, bg: "url(/showcase/golden-hour.webp) center/cover" },
+  { h: 150, bg: "url(/showcase/bouquet.webp) center/cover", sel: true },
+  { h: 130, bg: "url(/showcase/voile.webp) center/cover" },
+  { h: 110, bg: "url(/showcase/nuit.webp) center/cover" },
 ];
 
 export default function PhoneMock() {

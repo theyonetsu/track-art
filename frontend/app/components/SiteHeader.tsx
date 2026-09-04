@@ -10,10 +10,11 @@ export default function SiteHeader() {
           <a href="/#fonctionnement" className="hover:text-terracotta transition-colors">Fonctionnement</a>
           <a href="/#exemples" className="hover:text-terracotta transition-colors">Exemples</a>
           <a href="/#tarifs" className="hover:text-terracotta transition-colors">Tarifs</a>
+          <Link href="/aide" className="hover:text-terracotta transition-colors">Aide</Link>
         </nav>
         <div className="flex items-center gap-6">
           <Link href="/admin/login" className="label hover:text-terracotta transition-colors">Connexion</Link>
-          <Link href="/admin/login" className="btn btn-primary hidden sm:inline-flex">Essayer gratuitement</Link>
+          <Link href="/inscription" className="btn btn-primary hidden sm:inline-flex">Essayer gratuitement</Link>
         </div>
       </div>
     </header>

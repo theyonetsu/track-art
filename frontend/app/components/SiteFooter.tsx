@@ -14,6 +14,8 @@ export default function SiteFooter() {
           <Link href="/contact" className="hover:text-terracotta transition-colors">Contact</Link>
           <a href="/#tarifs" className="hover:text-terracotta transition-colors">Tarifs</a>
           <Link href="/mentions-legales" className="hover:text-terracotta transition-colors">Mentions légales</Link>
+          <Link href="/aide" className="hover:text-terracotta transition-colors">Aide &amp; FAQ</Link>
+          <Link href="/inscription" className="hover:text-terracotta transition-colors">Créer un compte</Link>
           <Link href="/admin/login" className="hover:text-terracotta transition-colors">Connexion</Link>
           <Link href="/confidentialite" className="hover:text-terracotta transition-colors">Confidentialité</Link>
         </nav>

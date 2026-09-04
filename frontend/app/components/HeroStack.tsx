@@ -7,9 +7,9 @@ import { useRef } from "react";
  * attendant de vraies photos.
  */
 const prints = [
-  { bg: "linear-gradient(160deg, #EAD4C2 0%, #C99B7F 50%, #9E6B52 100%)", w: 300, h: 400, x: 40, y: 60, r: -6, z: 1 },
-  { bg: "linear-gradient(160deg, #F1E3D4 0%, #D8B79E 60%, #B88A6D 100%)", w: 340, h: 440, x: 220, y: 0, r: 3, z: 3 },
-  { bg: "linear-gradient(160deg, #E8D9C9 0%, #D9BFA8 45%, #C39A80 100%)", w: 280, h: 360, x: 430, y: 120, r: 8, z: 2 },
+  { src: "/showcase/reception-bokeh.webp", w: 300, h: 375, x: 40, y: 60, r: -6, z: 1 },
+  { src: "/showcase/bouquet.webp", w: 340, h: 425, x: 220, y: 0, r: 3, z: 3 },
+  { src: "/showcase/golden-hour.webp", w: 300, h: 250, x: 430, y: 150, r: 8, z: 2 },
 ];
 
 export default function HeroStack() {
@@ -61,9 +61,7 @@ export default function HeroStack() {
               transition: "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            <div style={{ aspectRatio: `${p.w} / ${p.h}`, background: p.bg }} className="relative overflow-hidden">
-              <div className="absolute inset-0" style={{ background: "radial-gradient(120% 80% at 30% 20%, rgba(255,255,255,0.35), transparent 60%)" }} />
-            </div>
+            <div style={{ aspectRatio: `${p.w} / ${p.h}`, backgroundImage: `url(${p.src})`, backgroundSize: "cover", backgroundPosition: "center" }} className="relative overflow-hidden" />
           </div>
         ))}
 
