@@ -42,6 +42,31 @@ function daysUntil(dateStr: string | null): number | null {
   return Math.ceil(diff / 86400000);
 }
 
+
+// ─── Image protégée ────────────────────────────────────────────────────────────
+// La preview est affichée en arrière-plan CSS (pas de balise <img> exposée),
+// recouverte d'un calque transparent : pas de clic droit, pas de glisser-déposer,
+// pas d'appui long sur mobile, pas de « Enregistrer l'image sous ».
+// (Une capture d'écran reste toujours possible : la vraie protection est la basse définition.)
+function ProtectedImage({ src, className = '', fit = 'cover' }: { src: string; className?: string; fit?: 'cover' | 'contain' }) {
+  return (
+    <div
+      className={`relative overflow-hidden select-none ${className}`}
+      style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+      onContextMenu={(e) => e.preventDefault()}
+      onDragStart={(e) => e.preventDefault()}
+    >
+      <div
+        role="img"
+        aria-label=""
+        className="absolute inset-0"
+        style={{ backgroundImage: `url("${src}")`, backgroundSize: fit, backgroundPosition: 'center', backgroundRepeat: 'no-repeat', pointerEvents: 'none' }}
+      />
+      <div className="absolute inset-0" aria-hidden="true" />
+    </div>
+  );
+}
+
 export default function GalleryClient({ gallery, initialPhotos, paypalClientId }: Props) {
   const router = useRouter();
   // Les props sont rafraîchies par router.refresh() après confirmation/paiement
@@ -153,15 +178,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
               {unlockedPhotos.map((photo) => (
                 <div key={photo.id} className="relative group aspect-square overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.watermarkUrl}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    draggable={false}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
+                  <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
                   <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <a
                       href={photo.originalUrl!}
@@ -207,17 +224,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
                   aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
                 >
                   {/* Photo */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.watermarkUrl}
-                    alt=""
-                    className={`w-full h-full object-cover transition-all duration-200 ${
-                      isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'
-                    }`}
-                    loading="lazy"
-                    draggable={false}
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
+                  <ProtectedImage src={photo.watermarkUrl} className={`w-full h-full transition-all duration-200 ${isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'}`} />
 
                   {/* Selection overlay */}
                   {isSelected && (
@@ -316,13 +323,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId }
           >
             ×
           </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={lightbox.watermarkUrl}
-            alt=""
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-[90vh] w-[90vw]" />
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
             <button
               onClick={(e) => { e.stopPropagation(); toggleSelect(lightbox.id); setLightbox(null); }}
@@ -501,8 +502,7 @@ function CheckoutDrawer({
                 key={p.id}
                 className="shrink-0 w-16 h-16 overflow-hidden border border-line"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.watermarkUrl} alt="" className="w-full h-full object-cover" />
+                <ProtectedImage src={p.watermarkUrl} className="w-full h-full" />
               </div>
             ))}
           </div>

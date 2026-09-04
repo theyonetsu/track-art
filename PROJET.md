@@ -30,6 +30,11 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - Extras payants : le flux arrive jusqu'à PayPal ; identifiants `.env` encore factices → réponse 503 explicite « PayPal non configuré » (plus de 500).
 - URLs signées : 1 h (au lieu de 10 min) pour éviter les images cassées si le client reste longtemps sur la page.
 
+## Fait le 4 sept. (nuit)
+- Previews protégées : composant `ProtectedImage` (arrière-plan CSS + calque, plus de balise <img>, clic droit / drag / appui long bloqués). Une capture d'écran reste possible → la basse définition (1200 px) reste la vraie protection. Ne pas promettre d'« anti-IA ».
+- Textes de l'accueil réécrits (ton pro, bandeau 4 atouts, tarif « commission uniquement »). Classes `.btn/.input/.label` passées en `@layer components` (sinon elles écrasaient les utilitaires Tailwind).
+- Yonetsu a confirmé que les photos s'affichent bien dans Chrome.
+
 ## Pas encore fait (par ordre de priorité)
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
 1b. Vérifier sur le PC (Chrome) que les images des galeries s'affichent (le navigateur intégré de Claude bloque le port 9000 de MinIO, donc non vérifiable depuis Cowork) : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.

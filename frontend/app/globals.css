@@ -25,6 +25,7 @@ body {
 
 ::selection { background: var(--color-terracotta); color: var(--color-sand); }
 
+@layer components {
 /* Libellés majuscules espacés */
 .label {
   font-size: 0.75rem;
@@ -76,6 +77,7 @@ body {
 .input:focus { border-color: var(--color-ink); }
 .input::placeholder { color: var(--color-muted); opacity: 0.8; }
 .input option { background: var(--color-sand); color: var(--color-ink); }
+}
 
 /* Aplat photo en attendant le chargement */
 .photo-placeholder { background: linear-gradient(160deg, #E8D9C9 0%, #D9BFA8 45%, #C39A80 100%); }
