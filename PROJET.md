@@ -68,6 +68,21 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 
 - **Passe relief (5 sept., nuit)** : échelle d'ombres en 3 couches (contact + ambiante + arête haute éclairée), boutons avec enfoncement réel au clic, cartes et champs en profondeur, header qui se décolle au défilement, barre de progression de lecture (`ScrollFx`). Choix assumé : **pas** de bordures blanches/noires marquées, qui datent le design. Voir `DESIGN.md`.
 
+## Audit mobile + finitions (5 sept., nuit)
+Testé par itération sur 375 / 768 / 1024 / 1440 px, sur toutes les pages publiques et admin.
+Corrigé :
+1. **Navigation mobile absente** → menu (burger) dans `SiteHeader` avec les 4 sections + Connexion + CTA, croix animée, défilement de fond bloqué. Actif jusqu'à `lg` (le trou de navigation sur tablette est comblé).
+2. **Actions invisibles au doigt** (le plus grave) : téléchargement d'une photo, loupe et actions photo admin n'apparaissaient qu'au survol → inaccessibles sur téléphone. Classes `.hover-only` / `.touch-only` / `.reveal-on-hover` pilotées par `@media (hover: none)`.
+3. **Cibles tactiles < 44 px** dans les navigations et actions → `min-height: 44px` sur mobile (`nav a`, `nav button`, `footer nav a`, `.tap`).
+4. **Erreur d'hydratation React** : `ScrollFx` écrivait `data-scrolled` sur le header géré par React → l'attribut est maintenant posé sur `:root`, CSS adapté.
+5. **Débordement horizontal** du header admin à 768 px et des tableaux Ventes/Plateforme → nav admin en `lg:`, email masqué en dessous de `xl`, `.table-scroll`.
+6. En-tête « Vos photos HD » + bouton « Tout télécharger » superposés sur mobile → passage en colonne.
+7. Carte flottante du hero masquée sous `sm` (elle chevauchait les tirages).
+8. Repli visuel si un aperçu ne charge pas (dégradé chaud au lieu d'un rectangle vide).
+9. `viewport` + `theme-color` explicites ; ancres du header/footer en `<Link>` (plus de rechargement complet) ; refs PayPal ne sont plus mutées pendant le rendu.
+
+Restrictions d'environnement (pas des bugs) : le navigateur intégré de Cowork bloque `localhost:9000`, donc les aperçus MinIO n'y apparaissent pas (ils s'affichent bien dans Chrome) ; `next build` ne peut pas tourner depuis la VM Linux (binaires SWC Windows) → **à lancer une fois côté Windows avant la mise en ligne** : `cd frontend && npm run build`.
+
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration et tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.

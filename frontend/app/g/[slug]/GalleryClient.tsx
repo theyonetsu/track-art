@@ -35,7 +35,20 @@ function fmtDate(d: string | null, lang: Lang = 'fr') {
 function ProtectedImage({ src, className = '', fit = 'cover' }: { src: string; className?: string; fit?: 'cover' | 'contain' }) {
   return (
     <div className={`relative overflow-hidden select-none ${className}`} style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}>
-      <div role="img" aria-label="" className="absolute inset-0" style={{ backgroundImage: `url("${src}")`, backgroundSize: fit, backgroundPosition: 'center', backgroundRepeat: 'no-repeat', pointerEvents: 'none' }} />
+      <div
+        role="img"
+        aria-label=""
+        className="absolute inset-0"
+        style={{
+          // Repli discret si l'aperçu met du temps à arriver ou ne charge pas
+          backgroundColor: 'var(--color-sand-deep)',
+          backgroundImage: `url("${src}"), linear-gradient(160deg, #E8D9C9, #D9BFA8)`,
+          backgroundSize: `${fit}, cover`,
+          backgroundPosition: 'center, center',
+          backgroundRepeat: 'no-repeat, no-repeat',
+          pointerEvents: 'none',
+        }}
+      />
       <div className="absolute inset-0" aria-hidden="true" />
     </div>
   );
@@ -186,12 +199,12 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
         {/* Photos déverrouillées */}
         {unlockedPhotos.length > 0 && (
           <section className="mb-10">
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-3 mb-4">
               <h2 className="font-serif text-2xl">{t.yourPhotos} {gallery.allowHdDownload ? t.hd : t.confirmed} <span className="text-muted text-lg num">({unlockedPhotos.length})</span></h2>
               {!gallery.allowHdDownload && <span className="meta">{t.hdByPhotographer}</span>}
               {downloadable.length > 1 && <span className="meta hidden md:inline">{t.downloadHint}</span>}
               {downloadable.length > 1 && (
-                <button onClick={downloadAll} disabled={!!dl} className="btn btn-outline !min-h-0 !py-2">
+                <button onClick={downloadAll} disabled={!!dl} className="btn btn-outline self-start shrink-0">
                   {dl ? t.downloading(dl.i, dl.n) : t.downloadAll(downloadable.length)}
                 </button>
               )}
@@ -201,9 +214,22 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                 <div key={photo.id} className="relative group aspect-[4/5] overflow-hidden tile bg-sand-deep">
                   <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
                   {photo.originalUrl && (
-                    <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <a href={photo.originalUrl} download={photo.filename ?? ''} className="btn btn-outline border-sand text-sand hover:bg-sand hover:text-ink" onClick={(e) => e.stopPropagation()}>{t.download}</a>
-                    </div>
+                    <>
+                      {/* Souris : recouvrement au survol */}
+                      <div className="hover-only absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center flex">
+                        <a href={photo.originalUrl} download={photo.filename ?? ''} className="btn btn-outline border-sand text-sand" onClick={(e) => e.stopPropagation()}>{t.download}</a>
+                      </div>
+                      {/* Tactile : bouton toujours visible */}
+                      <a
+                        href={photo.originalUrl}
+                        download={photo.filename ?? ''}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={t.download}
+                        className="touch-only absolute bottom-2 left-2 w-11 h-11 items-center justify-center bg-sand/95 text-ink"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16" /></svg>
+                      </a>
+                    </>
                   )}
                   <div className="absolute top-2 right-2 badge" style={{ background: '#EFE6DA' }}>{photo.originalUrl ? 'HD' : 'OK'}</div>
                 </div>
@@ -235,8 +261,8 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                   <button key={photo.id} onClick={() => toggle(photo.id)} onDoubleClick={() => setLightbox(photo)} aria-pressed={isSelected} aria-label={isSelected ? t.selected : t.select}
                     className={`relative aspect-[4/5] overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-terracotta cursor-pointer bg-sand-deep tile ${isSelected ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-sand' : ''}`}>
                     <ProtectedImage src={photo.watermarkUrl} className={`w-full h-full transition-all duration-200 ${isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'}`} />
-                    <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-terracotta border-terracotta' : 'bg-ink/30 border-sand/80 opacity-0 group-hover:opacity-100'}`}>{isSelected && <Check />}</div>
-                    <span role="button" tabIndex={-1} aria-label={t.zoom} onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="absolute bottom-2 right-2 w-8 h-8 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
+                    <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-terracotta border-terracotta' : 'bg-ink/30 border-sand/80 opacity-0 group-hover:opacity-100 reveal-on-hover'}`}>{isSelected && <Check />}</div>
+                    <span role="button" tabIndex={-1} aria-label={t.zoom} onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="reveal-on-hover absolute bottom-2 right-2 w-11 h-11 sm:w-9 sm:h-9 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
                     </span>
                     {(isExtra || (!isSelected && includedRemaining - selectedCount <= 0)) && photo.price > 0 && (
@@ -437,8 +463,9 @@ function PayPalButtons({ t, lang, paypalClientId, create, onDone }: { t: Dict; l
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'error'>('loading');
   const [msg, setMsg] = useState('');
   // Les callbacks changent à chaque rendu du parent : on les garde dans des refs pour ne charger le SDK qu'une fois.
-  const createRef = useRef(create); createRef.current = create;
-  const doneRef = useRef(onDone); doneRef.current = onDone;
+  const createRef = useRef(create);
+  const doneRef = useRef(onDone);
+  useEffect(() => { createRef.current = create; doneRef.current = onDone; });
 
   useEffect(() => {
     if (!paypalClientId || !ref.current) { setStatus('error'); setMsg(t.noPay); return; }

@@ -47,7 +47,7 @@ export default function PlateformePage() {
             </>
           )}
         </Section>
-        <div className="card overflow-x-auto">
+        <div className="card table-scroll">
           <table className="w-full text-sm">
             <thead><tr className="text-left border-b border-line">{["Photographe", "Email", "Rôle", "Galeries", "Ventes", "Inscrit le"].map((h) => <th key={h} className="field-label font-normal px-5 py-4">{h}</th>)}</tr></thead>
             <tbody>

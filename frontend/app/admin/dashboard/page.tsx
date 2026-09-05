@@ -68,7 +68,7 @@ function Dashboard() {
             <h2 className="font-serif text-3xl">{showArchived ? "Archivées" : "En cours"}</h2>
             <div className="flex items-center gap-5">
               <span className="meta">{visible.length} galerie{visible.length > 1 ? "s" : ""}</span>
-              {archivedCount > 0 || showArchived ? <button onClick={() => setShowArchived(!showArchived)} className="label text-muted hover:text-terracotta">{showArchived ? "← En cours" : `Archivées (${archivedCount})`}</button> : null}
+              {archivedCount > 0 || showArchived ? <button onClick={() => setShowArchived(!showArchived)} className="tap label text-muted hover:text-terracotta">{showArchived ? "← En cours" : `Archivées (${archivedCount})`}</button> : null}
             </div>
           </div>
           {galleries === null && <p className="meta">Chargement…</p>}
@@ -98,7 +98,7 @@ function Dashboard() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-4 items-center">
-                    <button onClick={() => copy(g)} className={`label transition-colors ${copied === g.id ? "text-terracotta" : "text-muted hover:text-terracotta"}`}>{copied === g.id ? "Lien copié" : "Copier le lien"}</button>
+                    <button onClick={() => copy(g)} className={`tap label transition-colors ${copied === g.id ? "text-terracotta" : "text-muted hover:text-terracotta"}`}>{copied === g.id ? "Lien copié" : "Copier le lien"}</button>
                     <Link href={`/admin/gallery/${g.id}`} className="btn btn-outline">Gérer</Link>
                   </div>
                 </li>

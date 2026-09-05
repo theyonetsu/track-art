@@ -30,9 +30,9 @@ export default function AdminShell({ children, title, actions }: { children: Rea
   return (
     <div className="min-h-screen bg-sand text-ink grain">
       <header className="sticky top-0 z-30 glass border-b border-line">
-        <div className="px-6 md:px-12 h-[68px] flex items-center gap-8">
+        <div className="px-6 md:px-12 h-[68px] flex items-center gap-4 lg:gap-8">
           <Logo href="/admin/dashboard" size="sm" />
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden lg:flex items-center gap-7">
             {NAV.map((n) => {
               const active = pathname?.startsWith(n.href);
               return (
@@ -43,12 +43,12 @@ export default function AdminShell({ children, title, actions }: { children: Rea
               <Link href="/admin/plateforme" className={`label transition-colors ${pathname?.startsWith("/admin/plateforme") ? "text-terracotta" : "text-ink-soft hover:text-ink"}`}>Plateforme</Link>
             )}
           </nav>
-          <div className="ml-auto flex items-center gap-5">
-            {me && <span className="meta hidden sm:inline">{me.studioName ?? me.name ?? me.email}</span>}
-            <button onClick={logout} className="label text-muted hover:text-terracotta transition-colors">Déconnexion</button>
+          <div className="ml-auto flex items-center gap-5 min-w-0">
+            {me && <span className="meta hidden xl:inline truncate max-w-[220px]">{me.studioName ?? me.name ?? me.email}</span>}
+            <button onClick={logout} className="tap label text-muted hover:text-terracotta transition-colors shrink-0">Déconnexion</button>
           </div>
         </div>
-        <nav className="md:hidden flex gap-5 px-6 pb-3 overflow-x-auto scrollbar-none">
+        <nav className="lg:hidden flex gap-5 px-6 pb-3 overflow-x-auto scrollbar-none">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={`label whitespace-nowrap ${pathname?.startsWith(n.href) ? "text-terracotta" : "text-ink-soft"}`}>{n.label}</Link>
           ))}

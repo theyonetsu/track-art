@@ -67,7 +67,7 @@ export default function HeroStack() {
 
         {/* Carte flottante : preuve produit */}
         <div
-          className="absolute left-0 bottom-0 card px-5 py-4 flex flex-col gap-1 float"
+          className="hidden sm:flex absolute left-0 bottom-0 card px-5 py-4 flex-col gap-1 float"
           style={{ zIndex: 4, transform: "translate3d(calc(var(--tx, 0) * 1.2), calc(var(--ty, 0) * 1.2), 60px)" }}
         >
           <span className="label text-terracotta">Sélection en cours</span>

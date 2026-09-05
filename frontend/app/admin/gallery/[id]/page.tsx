@@ -269,11 +269,11 @@ export default function AdminGalleryPage() {
                   {p.isCover && <span className="badge badge-ink !py-1 !px-1.5">Couverture</span>}
                   {p.unlocked && <span className={`badge !py-1 !px-1.5 ${p.paid ? "badge-accent" : ""}`} style={{ background: "#EFE6DA" }}>{p.paid ? "Payée" : "Incluse"}</span>}
                 </div>
-                <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between gap-1">
+                <div className="reveal-on-hover absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-ink/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between gap-1">
                   {editPrice?.id === p.id ? (
                     <input autoFocus type="number" min={0} className="w-16 bg-sand text-ink text-xs px-1.5 py-1 outline-none text-center num" value={editPrice.v} onChange={(e) => setEditPrice({ id: p.id, v: e.target.value })} onBlur={commitPrice} onKeyDown={(e) => { if (e.key === "Enter") commitPrice(); if (e.key === "Escape") setEditPrice(null); }} />
                   ) : (
-                    <button onClick={() => setEditPrice({ id: p.id, v: String(p.price) })} className="text-sand text-xs num hover:text-terracotta-soft" title="Modifier le prix">{p.price} € ✎</button>
+                    <button onClick={() => setEditPrice({ id: p.id, v: String(p.price) })} className="text-sand text-xs num hover:text-terracotta-soft py-2 pr-2" title="Modifier le prix">{p.price} € ✎</button>
                   )}
                   <div className="flex gap-1">
                     {!p.isCover && <IconBtn title="Définir comme couverture" onClick={() => photoAction(p, "cover")}><path d="M4 5h16v14H4zM4 15l4-4 4 4 3-3 5 5" /></IconBtn>}
@@ -294,7 +294,7 @@ export default function AdminGalleryPage() {
 
 function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} title={title} aria-label={title} className="w-7 h-7 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center transition-colors">
+    <button onClick={onClick} title={title} aria-label={title} className="w-9 h-9 sm:w-8 sm:h-8 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center transition-colors">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
     </button>
   );

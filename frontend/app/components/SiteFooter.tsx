@@ -10,9 +10,9 @@ export default function SiteFooter() {
           <p className="text-sm text-ink-soft leading-relaxed">Galeries privées pour photographes. Vos clients choisissent, vous encaissez.</p>
         </div>
         <nav className="grid grid-cols-2 gap-x-12 gap-y-3 label text-muted">
-          <a href="/#fonctionnement" className="hover:text-terracotta transition-colors">Fonctionnement</a>
+          <Link href="/#fonctionnement" className="hover:text-terracotta transition-colors">Fonctionnement</Link>
           <Link href="/contact" className="hover:text-terracotta transition-colors">Contact</Link>
-          <a href="/#tarifs" className="hover:text-terracotta transition-colors">Tarifs</a>
+          <Link href="/#tarifs" className="hover:text-terracotta transition-colors">Tarifs</Link>
           <Link href="/mentions-legales" className="hover:text-terracotta transition-colors">Mentions légales</Link>
           <Link href="/aide" className="hover:text-terracotta transition-colors">Aide &amp; FAQ</Link>
           <Link href="/inscription" className="hover:text-terracotta transition-colors">Créer un compte</Link>

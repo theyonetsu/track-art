@@ -173,6 +173,26 @@ body {
 .reveal-stagger.is-visible > :nth-child(7) { transition-delay: 0.6s; }
 .reveal-stagger.is-visible > :nth-child(8) { transition-delay: 0.7s; }
 
+/* Cibles tactiles confortables sur téléphone (recommandation : 44 px) */
+@media (max-width: 767px) {
+  nav a, nav button, footer nav a { min-height: 44px; display: inline-flex; align-items: center; }
+  .tap { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+/* Écrans tactiles : ce qui apparaît au survol doit rester accessible au doigt */
+@media (hover: none) {
+  .hover-only { display: none !important; }        /* recouvrement réservé à la souris */
+  .touch-only { display: flex !important; }        /* équivalent tactile */
+  .reveal-on-hover { opacity: 1 !important; }      /* actions toujours visibles */
+}
+@media (hover: hover) {
+  .touch-only { display: none !important; }
+}
+
+/* Tableau large : défilement horizontal signalé par un dégradé sur le bord */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll table { min-width: 640px; }
+
 /* Barre de progression de lecture (JS : --scroll) */
 .progress-bar {
   position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 60; pointer-events: none;
@@ -183,7 +203,7 @@ body {
 
 /* Le header se décolle du contenu dès qu'on défile */
 .glass { transition: box-shadow 0.35s var(--ease-out-expo), background-color 0.35s; }
-.glass[data-scrolled="true"] { box-shadow: 0 1px 0 rgba(34, 27, 24, 0.06), 0 12px 28px -18px rgba(34, 27, 24, 0.4); }
+:root[data-scrolled="true"] .glass { box-shadow: 0 1px 0 rgba(34, 27, 24, 0.06), 0 12px 28px -18px rgba(34, 27, 24, 0.4); }
 
 /* Bandeau d'avis défilant */
 .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
@@ -204,7 +224,3 @@ body {
   .fade-up, .slide-up, .float { animation: none; }
   .marquee-track { animation: none; flex-wrap: wrap; width: 100%; justify-content: center; }
 }
-
-/* rev 2 */
-
-/* rafraîchissement */

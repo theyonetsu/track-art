@@ -22,7 +22,7 @@ export default function VentesPage() {
         <div className="card p-5"><span className="field-label">Encaissé</span><p className="font-serif text-3xl num">{euros(gross)}</p></div>
         <div className="card p-5"><span className="field-label">Net pour vous</span><p className="font-serif text-3xl num">{euros(net)}</p></div>
       </div>
-      <div className="card overflow-x-auto">
+      <div className="card table-scroll">
         <table className="w-full text-sm">
           <thead><tr className="text-left border-b border-line">{["Date", "Galerie", "Type", "Montant", "Commission", "Net", "Statut"].map((h) => <th key={h} className="field-label font-normal px-5 py-4">{h}</th>)}</tr></thead>
           <tbody>

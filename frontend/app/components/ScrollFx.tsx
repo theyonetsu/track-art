@@ -14,10 +14,11 @@ export default function ScrollFx() {
         raf = 0;
         const max = document.documentElement.scrollHeight - window.innerHeight;
         const p = max > 0 ? Math.min(1, window.scrollY / max) : 0;
-        document.documentElement.style.setProperty("--scroll", String(p));
-        document.querySelectorAll<HTMLElement>(".glass").forEach((el) => {
-          el.dataset.scrolled = window.scrollY > 8 ? "true" : "false";
-        });
+        const root = document.documentElement;
+        root.style.setProperty("--scroll", String(p));
+        // On marque la racine (jamais les nœuds gérés par React, sinon erreur d'hydratation)
+        const scrolled = window.scrollY > 8 ? "true" : "false";
+        if (root.dataset.scrolled !== scrolled) root.dataset.scrolled = scrolled;
       });
     };
     onScroll();
