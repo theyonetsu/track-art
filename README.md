@@ -54,7 +54,11 @@ En production, remplacer MinIO par Cloudflare R2 : définir `R2_ENDPOINT`, `R2_A
 - Chaque `Payment` enregistre `commissionRate`, `platformFee` (part Track.Art) et `netAmount` (part photographe).
 - Tarifs effectifs : valeur de la galerie → sinon défaut du photographe → sinon réglage plateforme.
 
-## Déploiement (Railway)
+## Déploiement
+
+Voir **DEPLOY.md** (pas à pas : GitHub, PayPal, R2, emails, Railway, domaine).
+
+## Déploiement (résumé)
 
 1. Pousser sur GitHub (`git push`).
 2. Sur Railway : nouveau projet → ajouter PostgreSQL → deux services depuis le repo (root `backend/` et `frontend/`, chacun a son Dockerfile).

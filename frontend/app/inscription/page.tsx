@@ -50,7 +50,7 @@ export default function Inscription() {
           <label className="flex flex-col gap-1.5"><span className="field-label">Mot de passe</span><input type="password" className="input" value={form.password} onChange={set("password")} placeholder="8 caractères minimum" minLength={8} required /></label>
           {error && <p className="text-terracotta text-sm">{error}</p>}
           <button type="submit" disabled={loading} className="btn btn-accent w-full mt-2">{loading ? "Création…" : "Créer mon compte"}</button>
-          <p className="help text-center">En créant un compte vous acceptez nos <Link href="/confidentialite" className="link-underline text-ink">conditions et notre politique de confidentialité</Link>.</p>
+          <p className="help text-center">En créant un compte vous acceptez nos <Link href="/cgv" className="link-underline text-ink">conditions générales</Link> et notre <Link href="/confidentialite" className="link-underline text-ink">politique de confidentialité</Link>.</p>
           <p className="text-center text-sm text-muted">Déjà un compte ? <Link href="/admin/login" className="text-ink link-underline hover:text-terracotta">Se connecter</Link></p>
         </form>
       </div>

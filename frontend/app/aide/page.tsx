@@ -11,6 +11,7 @@ const sections: { title: string; items: { q: string; a: string }[] }[] = [
     items: [
       { q: "Combien de photos mon client peut-il choisir ?", a: "Autant que vous le décidez. Le nombre de photos incluses est libre : vous fixez une valeur par défaut dans votre compte, puis vous l'ajustez galerie par galerie (5, 12, 30, 200… sans limite). Au-delà, chaque photo supplémentaire est facturée au prix que vous avez choisi." },
       { q: "Puis-je fixer un prix différent selon les photos ?", a: "Oui. Un prix par défaut s'applique à toute la galerie, et vous pouvez modifier le prix de chaque photo individuellement depuis la grille (survolez la photo, cliquez sur le prix)." },
+      { q: "Mon client peut-il acheter toutes les photos d’un coup ?", a: "Oui. Fixez un prix « toutes les photos » (dans votre compte par défaut, ou galerie par galerie). Un bouton « Débloquer les N photos » apparaît alors dans sa galerie : un seul paiement, tout est déverrouillé en HD. Il dispose aussi d’un bouton « Tout sélectionner » pour passer par le forfait et les extras à l’unité." },
       { q: "Puis-je offrir une photo à un client ?", a: "Oui. Survolez la photo dans votre espace et cliquez sur « Offrir » : elle est déverrouillée sans passer par le forfait ni le paiement. Vous pouvez aussi la reverrouiller." },
       { q: "Que voit le client avant de payer ?", a: "Des aperçus en basse définition, filigranés au nom de votre studio, impossibles à télécharger (clic droit, glisser-déposer et appui long bloqués). Les fichiers HD n'apparaissent qu'après confirmation ou paiement." },
     ],
@@ -38,6 +39,7 @@ const sections: { title: string; items: { q: string; a: string }[] }[] = [
     items: [
       { q: "Que voient mes clients de ma marque ?", a: "Le nom de votre studio sous le titre de chaque galerie et dans les emails, votre message personnel en haut de la galerie, et votre filigrane (texte au choix) sur tous les aperçus." },
       { q: "Quels formats de photos puis-je envoyer ?", a: "JPEG, PNG, WEBP, HEIC et TIFF jusqu'à 80 Mo par fichier, 100 fichiers par envoi. Miniatures et versions filigranées sont générées automatiquement à l'arrivée, l'orientation est corrigée." },
+      { q: "Mes clients ne parlent pas français ?", a: "Chaque galerie a sa langue : français, anglais ou espagnol. Textes, boutons, dates et interface PayPal s’adaptent. Le client peut aussi télécharger toutes ses photos HD en une archive ZIP." },
       { q: "Puis-je choisir la photo de couverture ?", a: "Oui. Par défaut c'est la première photo importée ; survolez n'importe quelle photo et cliquez sur l'icône de couverture pour la changer." },
     ],
   },

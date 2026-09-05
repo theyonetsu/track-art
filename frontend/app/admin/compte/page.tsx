@@ -7,7 +7,7 @@ import { api, euros } from "../../lib/api";
 type Me = {
   id: string; email: string; role: string; name: string | null; studioName: string | null; phone: string | null; website: string | null;
   watermarkText: string | null; totpEnabled: boolean;
-  defaultIncluded: number; defaultExtraPhotoPrice: number; defaultExtensionPrice: number; defaultExtensionDays: number; defaultExpiryDays: number;
+  defaultIncluded: number; defaultExtraPhotoPrice: number; defaultExtensionPrice: number; defaultExtensionDays: number; defaultExpiryDays: number; defaultAllPhotosPrice: number | null;
   stats: { galleries: number; sales: number; gross: number; net: number; fees: number };
 };
 
@@ -84,7 +84,10 @@ export default function ComptePage() {
               </div>
             </Field>
           </div>
-          <button onClick={() => save(["defaultIncluded", "defaultExtraPhotoPrice", "defaultExpiryDays", "defaultExtensionPrice", "defaultExtensionDays"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+          <Field label="Prix « toutes les photos » (€)" hint="Forfait pour débloquer d’un coup toutes les photos restantes d’une galerie. Vide = non proposé.">
+            <input type="number" min={0} className="input num" value={form.defaultAllPhotosPrice ?? ""} onChange={(e) => setForm({ ...form, defaultAllPhotosPrice: e.target.value === "" ? null : Number(e.target.value) })} placeholder="Non proposé" />
+          </Field>
+          <button onClick={() => save(["defaultIncluded", "defaultExtraPhotoPrice", "defaultExpiryDays", "defaultExtensionPrice", "defaultExtensionDays", "defaultAllPhotosPrice"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
         </Section>
 
         <Section title="Sécurité" hint={`Connecté en tant que ${me.email}`}>

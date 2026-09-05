@@ -18,6 +18,7 @@ export default function SiteFooter() {
           <Link href="/inscription" className="hover:text-terracotta transition-colors">Créer un compte</Link>
           <Link href="/admin/login" className="hover:text-terracotta transition-colors">Connexion</Link>
           <Link href="/confidentialite" className="hover:text-terracotta transition-colors">Confidentialité</Link>
+          <Link href="/cgv" className="hover:text-terracotta transition-colors">Conditions générales</Link>
         </nav>
       </div>
       <div className="px-6 md:px-20 py-5 border-t border-line/70 flex flex-col sm:flex-row justify-between gap-2 text-xs text-muted">

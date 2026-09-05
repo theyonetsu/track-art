@@ -12,6 +12,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { EmailModule } from './email/email.module';
 import { ImageProcessingModule } from './image-processing/image-processing.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -29,5 +30,6 @@ import { ImageProcessingModule } from './image-processing/image-processing.modul
     EmailModule,
     ImageProcessingModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

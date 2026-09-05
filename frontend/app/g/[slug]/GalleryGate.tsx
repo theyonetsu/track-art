@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import GalleryClient, { type Gallery, type Photo } from './GalleryClient';
+import { getDict } from './i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -18,6 +19,7 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(initialGallery.locked);
+  const { t } = getDict(initialGallery.languages);
 
   async function loadWithToken(t: string) {
     const res = await fetch(`${API}/galleries/${slug}`, { headers: { 'x-gallery-token': t }, cache: 'no-store' });
@@ -43,7 +45,7 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
     try {
       const res = await fetch(`${API}/galleries/${slug}/access`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Mot de passe incorrect');
+      if (!res.ok) throw new Error(res.status === 401 ? t.wrongPw : data.message ?? t.wrongPw);
       try { localStorage.setItem(key, data.token); } catch {}
       await loadWithToken(data.token);
     } catch (err) { setError(err instanceof Error ? err.message : 'Erreur'); } finally { setLoading(false); }
@@ -57,14 +59,14 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
         <p className="font-serif text-xs tracking-[0.32em] uppercase">Track<span className="text-terracotta">.</span>Art</p>
         <div className="flex flex-col gap-2">
           <h1 className="font-serif text-4xl leading-tight">{gallery.title}</h1>
-          {gallery.studioName && <p className="meta">par {gallery.studioName}</p>}
+          {gallery.studioName && <p className="meta">{t.by} {gallery.studioName}</p>}
         </div>
-        <p className="text-sm text-ink-soft">Cette galerie est privée. Saisissez le mot de passe transmis par votre photographe.</p>
-        {checking ? <p className="meta">Vérification…</p> : (
+        <p className="text-sm text-ink-soft">{t.private}</p>
+        {checking ? <p className="meta">{t.checking}</p> : (
           <>
-            <input type="password" className="input text-center tracking-[0.3em]" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus required />
+            <input type="password" className="input text-center tracking-[0.3em]" placeholder={t.password} value={password} onChange={(e) => setPassword(e.target.value)} autoFocus required />
             {error && <p className="text-terracotta text-sm">{error}</p>}
-            <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? 'Ouverture…' : 'Ouvrir la galerie'}</button>
+            <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? t.opening : t.open}</button>
           </>
         )}
       </form>

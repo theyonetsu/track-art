@@ -10,10 +10,10 @@ import { api, API, getToken, daysLeft, formatDate, euros } from "../../../lib/ap
 type Gallery = {
   id: string; title: string; slug: string; url: string; maxSelection: number; expiryDays: number;
   clientName: string | null; clientEmail: string | null; clientPhone: string | null; eventDate: string | null; message: string | null;
-  extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null;
+  extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null; allPhotosPrice: number | null; languages: string[];
   allowHdDownload: boolean; coverPhotoId: string | null; isArchived: boolean; hasPassword: boolean;
   expiresAt: string | null; firstOpenedAt: string | null; createdAt: string;
-  effective: { extraPhotoPrice: number; extensionPrice: number; extensionDays: number; commissionRate: number; studioName: string | null; watermarkText: string };
+  effective: { extraPhotoPrice: number; extensionPrice: number; extensionDays: number; allPhotosPrice: number | null; commissionRate: number; studioName: string | null; watermarkText: string };
   payments: { id: string; type: string; amount: number; netAmount: number; status: string; createdAt: string; photoIds: string[] }[];
   extensions: { id: string; days: number; amount: number; createdAt: string }[];
 };
@@ -152,8 +152,13 @@ export default function AdminGalleryPage() {
               <Field label="Email du client"><input type="email" className="input" value={form.clientEmail ?? ""} onChange={(e) => setF("clientEmail", e.target.value)} /></Field>
               <Field label="Téléphone"><input type="tel" className="input" value={form.clientPhone ?? ""} onChange={(e) => setF("clientPhone", e.target.value)} /></Field>
             </div>
+            <Field label="Langue de la galerie" hint="Interface du client : textes, boutons, dates, PayPal.">
+              <select className="input" value={(form.languages as string[] | undefined)?.[0] ?? "fr"} onChange={(e) => setF("languages", [e.target.value])}>
+                <option value="fr">Français</option><option value="en">English</option><option value="es">Español</option>
+              </select>
+            </Field>
             <div className="flex gap-3">
-              <button onClick={() => save(["title", "clientName", "eventDate", "message", "clientEmail", "clientPhone"])} disabled={saving} className="btn btn-primary">Enregistrer</button>
+              <button onClick={() => save(["title", "clientName", "eventDate", "message", "clientEmail", "clientPhone", "languages"])} disabled={saving} className="btn btn-primary">Enregistrer</button>
               <button onClick={() => act("send-link", undefined, `Lien envoyé à ${g.clientEmail}`)} disabled={!g.clientEmail} className="btn btn-ghost" title={!g.clientEmail ? "Renseignez un email client" : ""}>Envoyer le lien par email</button>
             </div>
           </Section>
@@ -168,8 +173,11 @@ export default function AdminGalleryPage() {
               <Field label="Prolongation (€)" hint={`Défaut : ${g.effective.extensionPrice} €`}><input type="number" min={0} className="input num" value={form.extensionPrice ?? ""} onChange={num("extensionPrice")} placeholder={String(g.effective.extensionPrice)} /></Field>
               <Field label="Durée prolongation (j)" hint={`Défaut : ${g.effective.extensionDays} j`}><input type="number" min={1} className="input num" value={form.extensionDays ?? ""} onChange={num("extensionDays")} placeholder={String(g.effective.extensionDays)} /></Field>
             </div>
+            <Field label="Prix « toutes les photos » (€)" hint={`Forfait pour débloquer d’un coup toutes les photos restantes. Vide = non proposé${g.effective.allPhotosPrice ? ` (défaut : ${g.effective.allPhotosPrice} €)` : ''}.`}>
+              <input type="number" min={0} className="input num" value={form.allPhotosPrice ?? ""} onChange={num("allPhotosPrice")} placeholder={g.effective.allPhotosPrice ? String(g.effective.allPhotosPrice) : "Non proposé"} />
+            </Field>
             <p className="help">Commission Track.Art en vigueur : <span className="num">{g.effective.commissionRate} %</span> sur chaque paiement client. Le prix d’une photo peut aussi être modifié individuellement dans la grille.</p>
-            <button onClick={() => save(["maxSelection", "extraPhotoPrice", "expiryDays", "extensionPrice", "extensionDays"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+            <button onClick={() => save(["maxSelection", "extraPhotoPrice", "expiryDays", "extensionPrice", "extensionDays", "allPhotosPrice"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
           </Section>
 
           <Section title="Accès & protection">

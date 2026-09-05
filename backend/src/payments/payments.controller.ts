@@ -16,6 +16,11 @@ export class PaymentsController {
     return this.svc.createExtensionOrder(body.galleryId, token);
   }
 
+  @Post('create-all-photos-order')
+  createAll(@Body() body: { galleryId: string }, @Headers('x-gallery-token') token?: string) {
+    return this.svc.createAllPhotosOrder(body.galleryId, token);
+  }
+
   @Post('capture-order')
   captureOrder(@Body() body: { paypalOrderId: string; internalId: string }) {
     return this.svc.captureOrder(body.paypalOrderId, body.internalId);

@@ -52,6 +52,14 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - **Visuels** : 8 images d'ambiance générées procéduralement dans `frontend/public/showcase/` (bokeh, fenêtre, bouquet, golden hour, voile, pellicule, nuit, bandeau). À remplacer par de vraies photos dès que Yonetsu en a (mêmes noms de fichiers).
 - ⚠️ **À faire par Yonetsu avant de tester** : dans un nouveau terminal, `cd backend && npx prisma migrate dev` (le backend redémarre tout seul). Sans ça, l'API renvoie des erreurs sur les nouveaux champs.
 
+## Fait le 5 sept. (après-midi, en autonomie)
+- **Achat de toutes les photos** : `Gallery.allPhotosPrice` / `User.defaultAllPhotosPrice` (migration `20260905140000_all_photos_price`), `POST /payments/create-all-photos-order` (type `BuyAllPhotos`, déverrouille tout à la capture), bouton « Débloquer les N photos · X € » + « Tout sélectionner » côté client, champs côté admin (compte + galerie).
+- **ZIP** : `GET /photos/gallery/:id/zip` (streaming, écrivain ZIP maison sans dépendance, CRC vérifiés), bouton « Tout télécharger (.zip) » si HD autorisé.
+- **FR / EN / ES** : dictionnaire `app/g/[slug]/i18n.ts`, langue choisie par galerie (admin → Informations), dates et PayPal localisés. Testé en anglais.
+- **Mise en ligne** : `DEPLOY.md` (pas à pas GitHub → PayPal → R2 → Brevo → Railway → domaine), `backend/.env.example`, `frontend/.env.example`, `GET /health` (db, paypal, smtp, storage), CORS multi-origines, `trust proxy`, écoute `0.0.0.0`.
+- **CGV** : `/cgv` (modèle avec crochets), lien dans le footer et à l'inscription.
+- ⚠️ **À faire par Yonetsu** : `cd backend && npx prisma migrate dev` (nouvelle migration `all_photos_price`), puis DEPLOY.md étapes 2 à 5 avec ses comptes.
+
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration et tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
@@ -60,7 +68,9 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 3. Multilingue FR / EN / ES (champ `languages` existe, UI en français uniquement).
 4. Webhook PayPal : vérifier la signature (`PAYPAL_WEBHOOK_ID`) — aujourd'hui le déverrouillage passe par capture-order côté serveur, ce qui est sûr, mais le webhook n'est pas vérifié.
 5. SMS Twilio (non branché), 2FA obligatoire au login, refresh token.
-6. Support RAW (aujourd'hui JPEG/PNG/WEBP/HEIC/TIFF, 50 Mo max).
+6. Support RAW (aujourd'hui JPEG/PNG/WEBP/HEIC/TIFF, 80 Mo max).
+8. Reversement automatique aux photographes (PayPal Payouts) — aujourd'hui calcul de la part nette seulement, virements manuels.
+9. Webhook PayPal signé (`PAYPAL_WEBHOOK_ID`) en plus de la capture serveur.
 7. Déploiement Railway + R2 + domaine trak.art.
 
 ## Décisions prises

@@ -42,6 +42,11 @@ export class UsersService {
   async updateMe(userId: string, body: Record<string, unknown>) {
     const data: Record<string, unknown> = {};
     for (const f of PROFILE_FIELDS) if (f in body) data[f] = body[f] === '' ? null : body[f];
+    if ('defaultAllPhotosPrice' in body) {
+      const v = body.defaultAllPhotosPrice;
+      if (v === null || v === '' || v === undefined) data.defaultAllPhotosPrice = null;
+      else { const n = Number(v); if (!Number.isInteger(n) || n < 0 || n > 100000) throw new BadRequestException('Prix « toutes les photos » invalide'); data.defaultAllPhotosPrice = n; }
+    }
     for (const f of DEFAULT_FIELDS) {
       if (f in body) {
         const n = Number(body[f]);

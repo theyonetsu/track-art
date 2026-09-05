@@ -64,6 +64,12 @@ export class StorageService implements OnModuleInit {
     return getSignedUrl(this.s3, cmd, { expiresIn });
   }
 
+  /** Flux de lecture d'un objet (pour le ZIP) */
+  async getObjectStream(key: string): Promise<AsyncIterable<Uint8Array>> {
+    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    return res.Body as unknown as AsyncIterable<Uint8Array>;
+  }
+
   async delete(key: string) {
     await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }

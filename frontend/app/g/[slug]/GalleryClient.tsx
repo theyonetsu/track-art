@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getDict, LOCALE, PAYPAL_LOCALE, type Dict, type Lang } from './i18n';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -15,6 +16,7 @@ export type Gallery = {
   includedUsed: number; includedRemaining: number; studioName: string | null; message: string | null;
   clientName: string | null; eventDate: string | null; allowHdDownload: boolean;
   extraPhotoPrice: number; extensionPrice: number; extensionDays: number;
+  allPhotosPrice?: number | null; lockedCount?: number; languages?: string[];
 };
 
 type Props = { gallery: Gallery; initialPhotos: Photo[]; paypalClientId: string; accessToken?: string; onRefresh?: () => Promise<void> | void };
@@ -25,8 +27,8 @@ function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
   return Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
 }
-function fmtDate(d: string | null) {
-  return d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+function fmtDate(d: string | null, lang: Lang = 'fr') {
+  return d ? new Date(d).toLocaleDateString(LOCALE[lang], { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 }
 
 // ─── Image protégée : fond CSS + calque, aucune balise <img> exposée ──────────
@@ -48,7 +50,8 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
   const photos = initialPhotos;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [lightbox, setLightbox] = useState<Photo | null>(null);
-  const [drawer, setDrawer] = useState<'photos' | 'extension' | null>(null);
+  const [drawer, setDrawer] = useState<'photos' | 'extension' | 'all' | null>(null);
+  const { lang, t } = getDict(gallery.languages);
   const [banner, setBanner] = useState<string>('');
 
   const days = daysUntil(gallery.expiresAt);
@@ -88,13 +91,16 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
 
   const onSelectionDone = useCallback(async (paid: boolean) => {
     setDrawer(null); setSelected(new Set());
-    setBanner(paid ? 'Paiement confirmé — vos photos sont déverrouillées ci-dessous.' : 'Sélection confirmée — vos photos sont disponibles ci-dessous.');
+    setBanner(paid ? t.paidBanner : t.freeBanner);
     await refresh();
-  }, [refresh]);
-  const onExtended = useCallback(async () => { setDrawer(null); setBanner(`Galerie prolongée de ${gallery.extensionDays} jours.`); await refresh(); }, [refresh, gallery.extensionDays]);
+  }, [refresh, t]);
+  const onAllDone = useCallback(async () => { setDrawer(null); setSelected(new Set()); setBanner(t.allBanner); await refresh(); }, [refresh, t]);
+  const onExtended = useCallback(async () => { setDrawer(null); setBanner(t.extendedBanner(gallery.extensionDays)); await refresh(); }, [refresh, gallery.extensionDays, t]);
 
   const block = (e: React.SyntheticEvent) => e.preventDefault();
   const canExtend = gallery.extensionPrice > 0 && days !== null && days <= 10;
+  const canBuyAll = !!gallery.allPhotosPrice && gallery.allPhotosPrice > 0 && selectablePhotos.length > 0;
+  const zipUrl = gallery.allowHdDownload && unlockedPhotos.some((p) => p.originalUrl) ? `${API}/photos/gallery/${gallery.id}/zip${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''}` : null;
 
   return (
     <div className="min-h-screen bg-sand text-ink select-none" onContextMenu={block} onDragStart={block}>
@@ -106,9 +112,9 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           <span className="font-serif text-xs tracking-[0.32em] uppercase">Track<span className="text-terracotta">.</span>Art</span>
           <h1 className="font-serif text-4xl md:text-6xl font-normal leading-tight mt-2" style={{ textShadow: '0 1px 0 rgba(255,255,255,0.5)' }}>{gallery.title}</h1>
           <p className="meta">
-            {gallery.studioName && <span>par {gallery.studioName}</span>}
+            {gallery.studioName && <span>{t.by} {gallery.studioName}</span>}
             {gallery.studioName && gallery.eventDate && <span> · </span>}
-            {gallery.eventDate && <span>{fmtDate(gallery.eventDate)}</span>}
+            {gallery.eventDate && <span>{fmtDate(gallery.eventDate, lang)}</span>}
           </p>
           {gallery.message && <p className="font-serif italic text-lg md:text-xl text-ink-soft max-w-2xl mt-2 leading-snug">« {gallery.message} »</p>}
         </div>
@@ -121,14 +127,14 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 px-5 py-4 card">
           <p className="text-sm">
             {selectedCount > 0
-              ? <><span className="num">{includedCount}</span> / <span className="num">{includedRemaining}</span> incluses{extraCount(extraPhotos.length)}</>
+              ? <><span className="num">{includedCount}</span> / <span className="num">{includedRemaining}</span> {t.includedShort}{extraPhotos.length > 0 && <> · {t.extra(extraPhotos.length)}</>}</>
               : includedRemaining > 0
-                ? <><span className="num">{includedRemaining}</span> photo{includedRemaining > 1 ? 's' : ''} incluse{includedRemaining > 1 ? 's' : ''} dans votre forfait</>
-                : <>Forfait utilisé — photos supplémentaires à <span className="num">{gallery.extraPhotoPrice} €</span> l’unité</>}
+                ? <>{t.included(includedRemaining)}</>
+                : <>{t.packUsed(gallery.extraPhotoPrice)}</>}
           </p>
           <div className="flex items-center gap-4">
-            {days !== null && <span className="label text-terracotta">{days > 0 ? `Expire dans ${days} jour${days > 1 ? 's' : ''}` : 'Expire aujourd’hui'}</span>}
-            {canExtend && <button onClick={() => setDrawer('extension')} className="btn btn-ghost !min-h-0 !py-2">Prolonger · {gallery.extensionPrice} €</button>}
+            {days !== null && <span className="label text-terracotta">{t.expiresIn(days)}</span>}
+            {canExtend && <button onClick={() => setDrawer('extension')} className="btn btn-ghost !min-h-0 !py-2">{t.extend} · {gallery.extensionPrice} €</button>}
           </div>
         </div>
 
@@ -136,8 +142,9 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
         {unlockedPhotos.length > 0 && (
           <section className="mb-10">
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="font-serif text-2xl">Vos photos {gallery.allowHdDownload ? 'HD' : 'confirmées'} <span className="text-muted text-lg num">({unlockedPhotos.length})</span></h2>
-              {!gallery.allowHdDownload && <span className="meta">Les fichiers HD vous seront remis par votre photographe.</span>}
+              <h2 className="font-serif text-2xl">{t.yourPhotos} {gallery.allowHdDownload ? t.hd : t.confirmed} <span className="text-muted text-lg num">({unlockedPhotos.length})</span></h2>
+              {!gallery.allowHdDownload && <span className="meta">{t.hdByPhotographer}</span>}
+              {zipUrl && <a href={zipUrl} className="btn btn-outline !min-h-0 !py-2">{t.downloadAll}</a>}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
               {unlockedPhotos.map((photo) => (
@@ -145,7 +152,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                   <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
                   {photo.originalUrl && (
                     <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <a href={photo.originalUrl} download className="btn btn-outline border-sand text-sand hover:bg-sand hover:text-ink" onClick={(e) => e.stopPropagation()}>Télécharger</a>
+                      <a href={photo.originalUrl} download className="btn btn-outline border-sand text-sand hover:bg-sand hover:text-ink" onClick={(e) => e.stopPropagation()}>{t.download}</a>
                     </div>
                   )}
                   <div className="absolute top-2 right-2 badge" style={{ background: '#EFE6DA' }}>{photo.originalUrl ? 'HD' : 'OK'}</div>
@@ -157,23 +164,29 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
 
         {/* Grille de sélection */}
         {photos.length === 0 ? (
-          <div className="py-32 text-center font-serif text-2xl text-muted">Les photos arrivent bientôt.</div>
+          <div className="py-32 text-center font-serif text-2xl text-muted">{t.soon}</div>
         ) : selectablePhotos.length === 0 ? (
-          <div className="py-16 text-center font-serif text-2xl text-muted">Toutes les photos sont déverrouillées.</div>
+          <div className="py-16 text-center font-serif text-2xl text-muted">{t.allUnlocked}</div>
         ) : (
           <>
-            <h2 className="font-serif text-2xl mb-4">Choisissez vos photos <span className="text-muted text-lg num">({selectablePhotos.length})</span></h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="font-serif text-2xl">{t.choose} <span className="text-muted text-lg num">({selectablePhotos.length})</span></h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <button onClick={() => setSelected(new Set(selectablePhotos.map((p) => p.id)))} className="label text-muted hover:text-terracotta transition-colors">{t.selectAll}</button>
+                {canBuyAll && <button onClick={() => setDrawer('all')} className="btn btn-accent !min-h-0 !py-2.5">{t.unlockAll(selectablePhotos.length, gallery.allPhotosPrice!)}</button>}
+              </div>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
               {selectablePhotos.map((photo) => {
                 const isSelected = selected.has(photo.id);
                 const idx = selectedList.findIndex((p) => p.id === photo.id);
                 const isExtra = isSelected && idx >= includedRemaining;
                 return (
-                  <button key={photo.id} onClick={() => toggle(photo.id)} onDoubleClick={() => setLightbox(photo)} aria-pressed={isSelected} aria-label={isSelected ? 'Désélectionner' : 'Sélectionner'}
+                  <button key={photo.id} onClick={() => toggle(photo.id)} onDoubleClick={() => setLightbox(photo)} aria-pressed={isSelected} aria-label={isSelected ? t.selected : t.select}
                     className={`relative aspect-[4/5] overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-terracotta cursor-pointer bg-sand-deep tile ${isSelected ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-sand' : ''}`}>
                     <ProtectedImage src={photo.watermarkUrl} className={`w-full h-full transition-all duration-200 ${isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'}`} />
                     <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-terracotta border-terracotta' : 'bg-ink/30 border-sand/80 opacity-0 group-hover:opacity-100'}`}>{isSelected && <Check />}</div>
-                    <span role="button" tabIndex={-1} aria-label="Agrandir" onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="absolute bottom-2 right-2 w-8 h-8 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
+                    <span role="button" tabIndex={-1} aria-label={t.zoom} onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="absolute bottom-2 right-2 w-8 h-8 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
                     </span>
                     {(isExtra || (!isSelected && includedRemaining - selectedCount <= 0)) && photo.price > 0 && (
@@ -192,45 +205,45 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
         <div className="fixed bottom-0 inset-x-0 z-40 glass border-t border-line slide-up" style={{ boxShadow: '0 -12px 40px -16px rgba(34,27,24,0.35)' }}>
           <div className="max-w-7xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
             <div>
-              <p className="text-base font-medium"><span className="num">{selectedCount}</span> <span className="text-muted font-light">photo{selectedCount > 1 ? 's' : ''}</span></p>
-              <p className="meta"><span className="num">{includedCount}</span> incluse{includedCount > 1 ? 's' : ''}{extraPhotos.length > 0 && <> · <span className="num">{extraPhotos.length}</span> extra{extraPhotos.length > 1 ? 's' : ''} = <span className="num">{total} €</span></>}</p>
+              <p className="text-base font-medium"><span className="num">{selectedCount}</span> <span className="text-muted font-light">{t.photo(selectedCount)}</span></p>
+              <p className="meta">{t.includedLine(includedCount)}{extraPhotos.length > 0 && <> · {t.extraLine(extraPhotos.length)} = <span className="num">{total} €</span></>}</p>
             </div>
             <div className="flex items-center gap-4">
-              <button onClick={() => setSelected(new Set())} className="label text-muted hover:text-terracotta transition-colors">Effacer</button>
-              <button onClick={() => setDrawer('photos')} className="btn btn-primary">{total > 0 ? `Payer ${total} €` : 'Confirmer'}</button>
+              <button onClick={() => setSelected(new Set())} className="label text-muted hover:text-terracotta transition-colors">{t.clear}</button>
+              <button onClick={() => setDrawer('photos')} className="btn btn-primary">{total > 0 ? t.pay(total) : t.confirm}</button>
             </div>
           </div>
         </div>
       )}
 
       {drawer === 'photos' && (
-        <Drawer title="Votre sélection" onClose={() => setDrawer(null)}>
+        <Drawer title={t.selection} onClose={() => setDrawer(null)} closeLabel={t.close}>
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
             {selectedList.map((p) => <div key={p.id} className="shrink-0 w-16 h-16 overflow-hidden border border-line"><ProtectedImage src={p.watermarkUrl} className="w-full h-full" /></div>)}
           </div>
           <div className="border border-line p-4 mb-6 flex flex-col gap-2 text-sm">
-            <div className="flex justify-between text-ink-soft"><span><span className="num">{includedCount}</span> photo{includedCount > 1 ? 's' : ''} incluse{includedCount > 1 ? 's' : ''}</span><span className="num">0 €</span></div>
-            {extraPhotos.length > 0 && <div className="flex justify-between text-ink-soft"><span><span className="num">{extraPhotos.length}</span> photo{extraPhotos.length > 1 ? 's' : ''} supplémentaire{extraPhotos.length > 1 ? 's' : ''}</span><span className="num">{total} €</span></div>}
-            <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>Total</span><span className="num">{total} €</span></div>
-            {total === 0 && <p className="help">Ces photos sont incluses dans votre forfait.</p>}
+            <div className="flex justify-between text-ink-soft"><span>{t.includedLine(includedCount)}</span><span className="num">0 €</span></div>
+            {extraPhotos.length > 0 && <div className="flex justify-between text-ink-soft"><span>{t.extraLine(extraPhotos.length)}</span><span className="num">{total} €</span></div>}
+            <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.total}</span><span className="num">{total} €</span></div>
+            {total === 0 && <p className="help">{t.includedNote}</p>}
           </div>
           {total > 0
-            ? <PayPalButtons paypalClientId={paypalClientId} create={async () => {
+            ? <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
                 const res = await fetch(`${API}/payments/create-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id, photoIds: Array.from(selected) }) });
                 if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
                 return res.json();
               }} onDone={() => onSelectionDone(true)} />
-            : <FreeConfirm slug={gallery.slug} ids={Array.from(selected)} headers={headers} onDone={() => onSelectionDone(false)} />}
+            : <FreeConfirm t={t} slug={gallery.slug} ids={Array.from(selected)} headers={headers} onDone={() => onSelectionDone(false)} />}
         </Drawer>
       )}
 
       {drawer === 'extension' && (
-        <Drawer title="Prolonger la galerie" onClose={() => setDrawer(null)}>
+        <Drawer title={t.extendTitle} onClose={() => setDrawer(null)} closeLabel={t.close}>
           <div className="border border-line p-4 mb-6 flex flex-col gap-2 text-sm">
-            <p className="text-ink-soft">Votre galerie expire {days !== null && days > 0 ? `dans ${days} jour${days > 1 ? 's' : ''}` : 'aujourd’hui'}. Prolongez-la de <strong className="num">{gallery.extensionDays} jours</strong> pour garder le temps de choisir.</p>
-            <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>Prolongation</span><span className="num">{gallery.extensionPrice} €</span></div>
+            <p className="text-ink-soft">{t.extendText(days, gallery.extensionDays)}</p>
+            <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.extension}</span><span className="num">{gallery.extensionPrice} €</span></div>
           </div>
-          <PayPalButtons paypalClientId={paypalClientId} create={async () => {
+          <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
             const res = await fetch(`${API}/payments/create-extension-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
             if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
             return res.json();
@@ -238,20 +251,38 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
         </Drawer>
       )}
 
+      {drawer === 'all' && (
+        <Drawer title={t.allTitle} onClose={() => setDrawer(null)} closeLabel={t.close}>
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
+            {selectablePhotos.slice(0, 12).map((p) => <div key={p.id} className="shrink-0 w-16 h-16 overflow-hidden border border-line"><ProtectedImage src={p.watermarkUrl} className="w-full h-full" /></div>)}
+            {selectablePhotos.length > 12 && <div className="shrink-0 w-16 h-16 border border-line flex items-center justify-center num text-sm text-muted">+{selectablePhotos.length - 12}</div>}
+          </div>
+          <div className="border border-line p-4 mb-6 flex flex-col gap-2 text-sm">
+            <p className="text-ink-soft">{t.allText(selectablePhotos.length)}</p>
+            <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.allLine(selectablePhotos.length)}</span><span className="num">{gallery.allPhotosPrice} €</span></div>
+          </div>
+          <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
+            const res = await fetch(`${API}/payments/create-all-photos-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur');
+            return res.json();
+          }} onDone={onAllDone} />
+        </Drawer>
+      )}
+
       {lightbox && (
         <div className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center fade-in" onClick={() => setLightbox(null)}>
           {lightboxList.length > 1 && (
             <>
-              <button className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }} aria-label="Photo précédente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></button>
-              <button className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(1); }} aria-label="Photo suivante"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg></button>
+              <button className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }} aria-label={t.prev}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></button>
+              <button className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(1); }} aria-label={t.next}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg></button>
               <span className="absolute top-5 left-1/2 -translate-x-1/2 label text-sand/60 num">{lightboxIndex + 1} / {lightboxList.length}</span>
             </>
           )}
-          <button className="absolute top-4 right-4 text-sand/70 hover:text-sand text-3xl leading-none" onClick={() => setLightbox(null)} aria-label="Fermer">×</button>
+          <button className="absolute top-4 right-4 text-sand/70 hover:text-sand text-3xl leading-none" onClick={() => setLightbox(null)} aria-label={t.close}>×</button>
           <div onClick={(e) => e.stopPropagation()} className="h-[82vh] w-[86vw] md:w-[80vw]"><ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-full w-full" /></div>
           {!lightbox.unlocked && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-              <button onClick={(e) => { e.stopPropagation(); toggle(lightbox.id); }} className={`btn ${selected.has(lightbox.id) ? 'btn-accent' : 'border-sand/60 text-sand hover:border-sand'}`}>{selected.has(lightbox.id) ? 'Sélectionnée' : 'Sélectionner'}</button>
+              <button onClick={(e) => { e.stopPropagation(); toggle(lightbox.id); }} className={`btn ${selected.has(lightbox.id) ? 'btn-accent' : 'border-sand/60 text-sand hover:border-sand'}`}>{selected.has(lightbox.id) ? t.selected : t.select}</button>
             </div>
           )}
         </div>
@@ -260,19 +291,15 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
   );
 }
 
-function extraCount(n: number) {
-  return n > 0 ? <> · <span className="num">{n}</span> supplémentaire{n > 1 ? 's' : ''}</> : null;
-}
-
 // ─── Tiroir ───────────────────────────────────────────────────────────────────
-function Drawer({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Drawer({ title, onClose, children, closeLabel = 'Fermer' }: { title: string; onClose: () => void; children: React.ReactNode; closeLabel?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-sand border-t border-line w-full max-h-[85vh] overflow-y-auto slide-up" style={{ boxShadow: '0 -24px 60px -20px rgba(34,27,24,0.5)' }}>
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-0.5 bg-line rounded-full" /></div>
         <div className="px-5 pb-8 pt-4 max-w-lg mx-auto w-full">
-          <div className="flex items-center justify-between mb-6"><h2 className="font-serif text-2xl">{title}</h2><button onClick={onClose} className="text-muted hover:text-ink text-2xl leading-none transition-colors" aria-label="Fermer">×</button></div>
+          <div className="flex items-center justify-between mb-6"><h2 className="font-serif text-2xl">{title}</h2><button onClick={onClose} className="text-muted hover:text-ink text-2xl leading-none transition-colors" aria-label={closeLabel}>×</button></div>
           {children}
         </div>
       </div>
@@ -281,7 +308,7 @@ function Drawer({ title, onClose, children }: { title: string; onClose: () => vo
 }
 
 // ─── Confirmation gratuite ────────────────────────────────────────────────────
-function FreeConfirm({ slug, ids, headers, onDone }: { slug: string; ids: string[]; headers: Record<string, string>; onDone: () => void }) {
+function FreeConfirm({ t, slug, ids, headers, onDone }: { t: Dict; slug: string; ids: string[]; headers: Record<string, string>; onDone: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   async function confirm() {
@@ -295,13 +322,13 @@ function FreeConfirm({ slug, ids, headers, onDone }: { slug: string; ids: string
   return (
     <>
       {error && <p className="text-terracotta text-sm text-center mb-3">{error}</p>}
-      <button onClick={confirm} disabled={loading} className="btn btn-primary w-full">{loading ? 'Confirmation…' : 'Confirmer ma sélection'}</button>
+      <button onClick={confirm} disabled={loading} className="btn btn-primary w-full">{loading ? t.confirming : t.confirmSel}</button>
     </>
   );
 }
 
 // ─── Boutons PayPal ───────────────────────────────────────────────────────────
-function PayPalButtons({ paypalClientId, create, onDone }: { paypalClientId: string; create: () => Promise<{ paypalOrderId: string; internalId: string }>; onDone: () => void }) {
+function PayPalButtons({ t, lang, paypalClientId, create, onDone }: { t: Dict; lang: Lang; paypalClientId: string; create: () => Promise<{ paypalOrderId: string; internalId: string }>; onDone: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const internalId = useRef<string | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'processing' | 'error'>('loading');
@@ -311,11 +338,11 @@ function PayPalButtons({ paypalClientId, create, onDone }: { paypalClientId: str
   const doneRef = useRef(onDone); doneRef.current = onDone;
 
   useEffect(() => {
-    if (!paypalClientId || !ref.current) { setStatus('error'); setMsg('Le paiement en ligne n’est pas encore activé sur cette galerie. Contactez votre photographe.'); return; }
+    if (!paypalClientId || !ref.current) { setStatus('error'); setMsg(t.noPay); return; }
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&locale=fr_FR`;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&locale=${PAYPAL_LOCALE[lang]}`;
     script.async = true;
-    script.onerror = () => { setStatus('error'); setMsg('Impossible de charger PayPal. Vérifiez votre connexion.'); };
+    script.onerror = () => { setStatus('error'); setMsg(t.ppLoad); };
     script.onload = () => {
       const win = window as unknown as { paypal?: PayPalSdk };
       if (!win.paypal || !ref.current) return;
@@ -331,23 +358,24 @@ function PayPalButtons({ paypalClientId, create, onDone }: { paypalClientId: str
             const res = await fetch(`${API}/payments/capture-order`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paypalOrderId: data.orderID, internalId: internalId.current }) });
             if (!res.ok) throw new Error(await res.text());
             doneRef.current();
-          } catch { setStatus('error'); setMsg('Paiement reçu mais erreur lors de la validation. Contactez votre photographe.'); }
+          } catch { setStatus('error'); setMsg(t.ppValid); }
         },
         onCancel: () => setStatus('ready'),
-        onError: () => { setStatus('error'); setMsg('Erreur PayPal. Veuillez réessayer.'); },
-      }).render(ref.current).then(() => setStatus('ready')).catch(() => { setStatus('error'); setMsg('Impossible d’afficher les boutons PayPal.'); });
+        onError: () => { setStatus('error'); setMsg(t.ppErr); },
+      }).render(ref.current).then(() => setStatus('ready')).catch(() => { setStatus('error'); setMsg(t.ppBtn); });
     };
     document.head.appendChild(script);
     return () => { if (document.head.contains(script)) document.head.removeChild(script); delete (window as unknown as { paypal?: PayPalSdk }).paypal; };
-  }, [paypalClientId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paypalClientId, lang]);
 
   return (
     <div>
       {status === 'loading' && <div className="h-11 bg-sand-deep animate-pulse" />}
       {status === 'error' && <div className="text-terracotta text-sm text-center py-3">{msg}</div>}
-      {status === 'processing' && <div className="label text-muted text-center py-3">Traitement en cours…</div>}
+      {status === 'processing' && <div className="label text-muted text-center py-3">{t.processing}</div>}
       <div ref={ref} className={status === 'loading' || status === 'processing' ? 'invisible h-0' : ''} />
-      <p className="text-center text-xs text-muted mt-4">Paiement sécurisé via PayPal · cartes bancaires acceptées</p>
+      <p className="text-center text-xs text-muted mt-4">{t.secure}</p>
     </div>
   );
 }

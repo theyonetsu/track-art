@@ -154,6 +154,12 @@ export class PaymentsService {
       data: { status: 'completed' },
     });
 
+    if (payment.type === 'BuyAllPhotos') {
+      const r = await this.prisma.photo.updateMany({ where: { galleryId: payment.galleryId, unlocked: false }, data: { unlocked: true, paid: true } });
+      this.logger.log(`Payment captured: ${internalId} — toutes les photos déverrouillées (${r.count})`);
+      return { success: true, all: true, count: r.count };
+    }
+
     if (payment.type === 'ExtendGallery') {
       const g = await this.prisma.gallery.findUnique({ where: { id: payment.galleryId } });
       const settings = await this.galleries.effectiveSettings(g);
@@ -203,6 +209,33 @@ export class PaymentsService {
     if (!order.id) { this.logger.error('PayPal createOrder error: ' + JSON.stringify(order)); throw new BadRequestException('Erreur création commande PayPal'); }
     await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: order.id } });
     return { paypalOrderId: order.id, internalId: payment.id, total, days: settings.extensionDays };
+  }
+
+  /** Achat de TOUTES les photos restantes au prix forfaitaire du photographe */
+  async createAllPhotosOrder(galleryId: string, token?: string) {
+    const gallery = await this.galleries.assertPublicAccess(galleryId, token);
+    const settings = await this.galleries.effectiveSettings(gallery);
+    if (!settings.allPhotosPrice || settings.allPhotosPrice <= 0) throw new BadRequestException('Cette galerie ne propose pas de forfait « toutes les photos »');
+    const locked = await this.prisma.photo.findMany({ where: { galleryId, unlocked: false }, select: { id: true } });
+    if (!locked.length) throw new BadRequestException('Toutes les photos sont déjà déverrouillées');
+    const total = settings.allPhotosPrice;
+
+    const payment = await this.prisma.payment.create({
+      data: { galleryId, userId: gallery.userId, type: 'BuyAllPhotos', amount: total, photoIds: locked.map((p) => p.id), ...this.split(total, settings.commissionRate) },
+    });
+    const accessToken = await this.getToken();
+    const res = await fetch(`${this.base}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'PayPal-Request-Id': payment.id },
+      body: JSON.stringify({
+        intent: 'CAPTURE',
+        purchase_units: [{ reference_id: payment.id, amount: { currency_code: 'EUR', value: total.toFixed(2) }, description: `Track.Art — Toutes les photos (${locked.length})` }],
+      }),
+    });
+    const order = await res.json() as any;
+    if (!order.id) { this.logger.error('PayPal createOrder error: ' + JSON.stringify(order)); throw new BadRequestException('Erreur création commande PayPal'); }
+    await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: order.id } });
+    return { paypalOrderId: order.id, internalId: payment.id, total, count: locked.length };
   }
 
   /** Historique des ventes du photographe */

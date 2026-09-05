@@ -9,7 +9,7 @@ type Actor = { sub: string; role: string };
 /** Champs modifiables par le photographe */
 const EDITABLE = [
   'title', 'clientName', 'clientEmail', 'clientPhone', 'eventDate', 'message',
-  'maxSelection', 'extraPhotoPrice', 'extensionPrice', 'extensionDays', 'expiryDays',
+  'maxSelection', 'extraPhotoPrice', 'extensionPrice', 'extensionDays', 'allPhotosPrice', 'expiryDays',
   'allowHdDownload', 'coverPhotoId', 'isArchived', 'languages',
 ] as const;
 
@@ -34,7 +34,7 @@ export class GalleriesService {
   }
 
   /** Tarifs effectifs : valeur de la galerie, sinon défaut du photographe, sinon plateforme */
-  async effectiveSettings(gallery: { userId: string | null; extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null }) {
+  async effectiveSettings(gallery: { userId: string | null; extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null; allPhotosPrice?: number | null }) {
     const [user, platform] = await Promise.all([
       gallery.userId ? this.prisma.user.findUnique({ where: { id: gallery.userId } }) : null,
       this.prisma.settings.findFirst(),
@@ -43,6 +43,7 @@ export class GalleriesService {
       extraPhotoPrice: gallery.extraPhotoPrice ?? user?.defaultExtraPhotoPrice ?? platform?.extraPhotoPrice ?? 2,
       extensionPrice: gallery.extensionPrice ?? user?.defaultExtensionPrice ?? platform?.extensionPrice ?? 5,
       extensionDays: gallery.extensionDays ?? user?.defaultExtensionDays ?? platform?.extensionDays ?? 7,
+      allPhotosPrice: gallery.allPhotosPrice ?? user?.defaultAllPhotosPrice ?? null,
       commissionRate: platform?.commissionRate ?? 10,
       studioName: user?.studioName ?? user?.name ?? null,
       watermarkText: user?.watermarkText ?? user?.studioName ?? 'TRACK.ART',
@@ -55,7 +56,7 @@ export class GalleriesService {
       if (!(f in body)) continue;
       let v = body[f];
       if (v === '') v = null;
-      if (['maxSelection', 'extraPhotoPrice', 'extensionPrice', 'extensionDays', 'expiryDays'].includes(f) && v !== null) {
+      if (['maxSelection', 'extraPhotoPrice', 'extensionPrice', 'extensionDays', 'allPhotosPrice', 'expiryDays'].includes(f) && v !== null) {
         const n = Number(v);
         if (!Number.isInteger(n) || n < 0 || n > 100000) throw new BadRequestException(`Valeur invalide pour ${f}`);
         v = n;
@@ -205,10 +206,13 @@ export class GalleriesService {
     }
 
     const quota = await this.getQuota(g.id, g.maxSelection);
+    const lockedCount = await this.prisma.photo.count({ where: { galleryId: g.id, unlocked: false } });
     const { password, clientEmail, clientPhone, userId, ...publicGallery } = g;
     return {
       ...publicGallery,
       ...quota,
+      lockedCount,
+      allPhotosPrice: settings.allPhotosPrice,
       locked: false,
       hasPassword: !!password,
       studioName: settings.studioName,
