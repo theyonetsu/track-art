@@ -4,8 +4,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ImageProcessingService } from '../image-processing/image-processing.service';
 import { GalleriesService } from '../galleries/galleries.service';
-import { ZipStream } from './zip-stream';
-import type { Response } from 'express';
 
 type Actor = { sub: string; role: string };
 
@@ -73,7 +71,7 @@ export class PhotosService {
     const gallery = await this.galleries.assertPublicAccess(galleryId, token);
     const photos = await this.prisma.photo.findMany({ where: { galleryId }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
     return Promise.all(
-      photos.map(async (photo) => ({
+      photos.map(async (photo, i) => ({
         id: photo.id,
         galleryId: photo.galleryId,
         unlocked: photo.unlocked,
@@ -82,7 +80,10 @@ export class PhotosService {
         height: photo.height,
         createdAt: photo.createdAt,
         watermarkUrl: await this.storage.getSignedUrl(photo.watermarkKey),
-        originalUrl: photo.unlocked && gallery.allowHdDownload ? await this.storage.getSignedUrl(photo.originalKey) : null,
+        filename: photo.filename ?? `photo-${String(i + 1).padStart(3, '0')}.jpg`,
+        originalUrl: photo.unlocked && gallery.allowHdDownload
+          ? await this.storage.getSignedUrl(photo.originalKey, 3600, { filename: photo.filename ?? `photo-${String(i + 1).padStart(3, '0')}.jpg` })
+          : null,
         isCover: gallery.coverPhotoId === photo.id,
       })),
     );
@@ -102,34 +103,6 @@ export class PhotosService {
         return { ...photo, previewUrl, watermarkUrl, originalUrl, isCover: gallery.coverPhotoId === photo.id };
       }),
     );
-  }
-
-  /** Public — archive ZIP de toutes les photos HD déverrouillées (si téléchargement autorisé). */
-  async streamZip(galleryId: string, token: string | undefined, res: Response) {
-    const gallery = await this.galleries.assertPublicAccess(galleryId, token);
-    if (!gallery.allowHdDownload) throw new BadRequestException('Le téléchargement HD n\'est pas autorisé sur cette galerie');
-    const photos = await this.prisma.photo.findMany({ where: { galleryId, unlocked: true }, orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }] });
-    if (!photos.length) throw new BadRequestException('Aucune photo déverrouillée');
-
-    const safeTitle = gallery.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '-') || 'galerie';
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.zip"`);
-    res.setHeader('Cache-Control', 'no-store');
-
-    const zip = new ZipStream(res);
-    const used = new Set<string>();
-    let i = 0;
-    for (const p of photos) {
-      i++;
-      const ext = (p.filename?.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-      let base = (p.filename ? p.filename.replace(/\.[^.]+$/, '') : `photo-${String(i).padStart(3, '0')}`).replace(/[\\/:*?"<>|]/g, '_');
-      let name = `${base}.${ext}`; let k = 1;
-      while (used.has(name)) name = `${base}-${k++}.${ext}`;
-      used.add(name);
-      const body = await this.storage.getObjectStream(p.originalKey);
-      await zip.addFile(`${safeTitle}/${name}`, body);
-    }
-    await zip.finish();
   }
 
   async unlock(id: string, actor: Actor) {

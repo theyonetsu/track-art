@@ -8,7 +8,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export type Photo = {
   id: string; galleryId: string; unlocked: boolean; price: number; createdAt: string;
-  watermarkUrl: string; originalUrl: string | null; isCover?: boolean; width?: number | null; height?: number | null;
+  watermarkUrl: string; originalUrl: string | null; filename?: string | null; isCover?: boolean; width?: number | null; height?: number | null;
 };
 
 export type Gallery = {
@@ -100,7 +100,27 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
   const block = (e: React.SyntheticEvent) => e.preventDefault();
   const canExtend = gallery.extensionPrice > 0 && days !== null && days <= 10;
   const canBuyAll = !!gallery.allPhotosPrice && gallery.allPhotosPrice > 0 && selectablePhotos.length > 0;
-  const zipUrl = gallery.allowHdDownload && unlockedPhotos.some((p) => p.originalUrl) ? `${API}/photos/gallery/${gallery.id}/zip${accessToken ? `?token=${encodeURIComponent(accessToken)}` : ''}` : null;
+  const downloadable = unlockedPhotos.filter((p) => p.originalUrl);
+
+  // Téléchargement de tous les fichiers ORIGINAUX, un par un (pas d'archive) :
+  // chaque URL signée renvoie le fichier tel qu'uploadé, avec son nom, en pièce jointe.
+  const [dl, setDl] = useState<{ i: number; n: number } | null>(null);
+  async function downloadAll() {
+    if (dl || !downloadable.length) return;
+    for (let i = 0; i < downloadable.length; i++) {
+      const p = downloadable[i];
+      setDl({ i: i + 1, n: downloadable.length });
+      const a = document.createElement('a');
+      a.href = p.originalUrl!;
+      a.download = p.filename ?? '';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      await new Promise((r) => setTimeout(r, 700));
+    }
+    setDl(null);
+  }
 
   return (
     <div className="min-h-screen bg-sand text-ink select-none" onContextMenu={block} onDragStart={block}>
@@ -144,7 +164,12 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <div className="flex items-baseline justify-between mb-4">
               <h2 className="font-serif text-2xl">{t.yourPhotos} {gallery.allowHdDownload ? t.hd : t.confirmed} <span className="text-muted text-lg num">({unlockedPhotos.length})</span></h2>
               {!gallery.allowHdDownload && <span className="meta">{t.hdByPhotographer}</span>}
-              {zipUrl && <a href={zipUrl} className="btn btn-outline !min-h-0 !py-2">{t.downloadAll}</a>}
+              {downloadable.length > 1 && <span className="meta hidden md:inline">{t.downloadHint}</span>}
+              {downloadable.length > 1 && (
+                <button onClick={downloadAll} disabled={!!dl} className="btn btn-outline !min-h-0 !py-2">
+                  {dl ? t.downloading(dl.i, dl.n) : t.downloadAll(downloadable.length)}
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
               {unlockedPhotos.map((photo) => (
@@ -152,7 +177,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                   <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
                   {photo.originalUrl && (
                     <div className="absolute inset-0 bg-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <a href={photo.originalUrl} download className="btn btn-outline border-sand text-sand hover:bg-sand hover:text-ink" onClick={(e) => e.stopPropagation()}>{t.download}</a>
+                      <a href={photo.originalUrl} download={photo.filename ?? ''} className="btn btn-outline border-sand text-sand hover:bg-sand hover:text-ink" onClick={(e) => e.stopPropagation()}>{t.download}</a>
                     </div>
                   )}
                   <div className="absolute top-2 right-2 badge" style={{ background: '#EFE6DA' }}>{photo.originalUrl ? 'HD' : 'OK'}</div>

@@ -37,6 +37,10 @@ Console MinIO (voir les fichiers stockés) : http://localhost:9001 (admin / admi
 
 En production, remplacer MinIO par Cloudflare R2 : définir `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET` (le backend bascule automatiquement sur R2 si `R2_ENDPOINT` est défini).
 
+## Téléchargements
+
+Aucune archive : chaque photo déverrouillée est servie via une URL signée temporaire portant `Content-Disposition: attachment`, donc le client récupère **le fichier original tel qu'uploadé** (format, résolution et nom d'origine, sans recompression). « Tout télécharger » déclenche les fichiers un par un côté navigateur.
+
 ## Comptes et rôles
 
 - **Photographe** (`/inscription`) : voit uniquement ses galeries, règle ses valeurs par défaut (`/admin/compte`), suit ses ventes (`/admin/ventes`).

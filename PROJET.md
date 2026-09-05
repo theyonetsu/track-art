@@ -54,7 +54,7 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 
 ## Fait le 5 sept. (après-midi, en autonomie)
 - **Achat de toutes les photos** : `Gallery.allPhotosPrice` / `User.defaultAllPhotosPrice` (migration `20260905140000_all_photos_price`), `POST /payments/create-all-photos-order` (type `BuyAllPhotos`, déverrouille tout à la capture), bouton « Débloquer les N photos · X € » + « Tout sélectionner » côté client, champs côté admin (compte + galerie).
-- **ZIP** : `GET /photos/gallery/:id/zip` (streaming, écrivain ZIP maison sans dépendance, CRC vérifiés), bouton « Tout télécharger (.zip) » si HD autorisé.
+- **Téléchargement** (revu le 5 sept. au soir, sur demande de Yonetsu) : **plus d'archive ZIP**. Chaque photo se télécharge en fichier ORIGINAL, tel qu'uploadé (même format, même résolution, aucune recompression), avec son nom d'origine — l'URL signée porte un `Content-Disposition: attachment` (`ResponseContentDisposition` S3/R2), donc le fichier est directement utilisable sur ordinateur comme sur téléphone. Le bouton « Tout télécharger (N) » enchaîne les fichiers un par un (700 ms d'intervalle) avec un compteur de progression. Le code ZIP (`zip-stream.ts`, route `/zip`, `getObjectStream`) a été supprimé.
 - **FR / EN / ES** : dictionnaire `app/g/[slug]/i18n.ts`, langue choisie par galerie (admin → Informations), dates et PayPal localisés. Testé en anglais.
 - **Mise en ligne** : `DEPLOY.md` (pas à pas GitHub → PayPal → R2 → Brevo → Railway → domaine), `backend/.env.example`, `frontend/.env.example`, `GET /health` (db, paypal, smtp, storage), CORS multi-origines, `trust proxy`, écoute `0.0.0.0`.
 - **CGV** : `/cgv` (modèle avec crochets), lien dans le footer et à l'inscription.

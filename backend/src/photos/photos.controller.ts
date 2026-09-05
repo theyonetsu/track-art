@@ -1,12 +1,11 @@
 import {
-  Controller, Get, Post, Delete, Patch, Param, Body, Req, Headers, Res, Query,
+  Controller, Get, Post, Delete, Patch, Param, Body, Req, Headers,
   UseGuards, UseInterceptors, UploadedFiles, BadRequestException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { PhotosService } from './photos.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
-import type { Response } from 'express';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/tiff'];
 const MAX_FILE_SIZE = 80 * 1024 * 1024; // 80 Mo
@@ -33,12 +32,6 @@ export class PhotosController {
   /** Public */
   @Get('gallery/:id')
   findByGallery(@Param('id') id: string, @Headers('x-gallery-token') token?: string) { return this.svc.findByGallery(id, token); }
-
-  /** Public — ZIP des HD (le jeton peut passer en query pour un lien direct) */
-  @Get('gallery/:id/zip')
-  zip(@Param('id') id: string, @Res() res: Response, @Headers('x-gallery-token') token?: string, @Query('token') qToken?: string) {
-    return this.svc.streamZip(id, token || qToken, res);
-  }
 
   @UseGuards(JwtAuthGuard) @Get('gallery/:id/admin')
   findByGalleryAdmin(@Req() req, @Param('id') id: string) { return this.svc.findByGalleryAdmin(id, req.user); }

@@ -59,15 +59,14 @@ export class StorageService implements OnModuleInit {
   }
 
   /** URL signée temporaire (1 h par défaut) — jamais d'URL directe et permanente vers les originaux. */
-  async getSignedUrl(key: string, expiresIn = 3600) {
-    const cmd = new GetObjectCommand({ Bucket: this.bucket, Key: key });
+  async getSignedUrl(key: string, expiresIn = 3600, download?: { filename: string }) {
+    const cmd = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      // Force le téléchargement sous le nom d'origine (fichier tel qu'uploadé, sans perte)
+      ...(download ? { ResponseContentDisposition: `attachment; filename="${download.filename.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '')}"; filename*=UTF-8''${encodeURIComponent(download.filename)}` } : {}),
+    });
     return getSignedUrl(this.s3, cmd, { expiresIn });
-  }
-
-  /** Flux de lecture d'un objet (pour le ZIP) */
-  async getObjectStream(key: string): Promise<AsyncIterable<Uint8Array>> {
-    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
-    return res.Body as unknown as AsyncIterable<Uint8Array>;
   }
 
   async delete(key: string) {
