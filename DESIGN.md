@@ -18,6 +18,14 @@ Direction retenue : chaude, épurée, haut de gamme. Fond beige, typographie ser
 - Texte et UI : **Jost** (300/400/500). Corps 16–18px en 300, labels 12–13px en majuscules espacées (`tracking 0.14–0.3em`).
 - Logo : « TRACK.ART » en Cormorant, `tracking 0.32em`, le point en terracotta.
 
+## Relief (mis à jour le 5 sept.)
+Pas de bordures blanches ou noires marquées (effet daté). Le relief vient de trois couches :
+1. une ombre de **contact** très serrée (1–2 px, opacité ≤ 0,07) ;
+2. une ombre **ambiante** large et diffuse (24–48 px, opacité ≤ 0,3) ;
+3. un **liseré clair d'1 px sur l'arête haute** (`--edge-light`, `--edge-light-strong`) qui simule une lumière venant du dessus.
+Boutons : dégradé vertical très léger, survol = lift de 2 px + ombre plus large, clic = enfoncement réel (`translateY(1px)` + ombre interne). Champs : légère profondeur interne au repos, halo terracotta au focus.
+Header collant : ombre qui apparaît uniquement au défilement (`.glass[data-scrolled]`). Barre de progression de lecture de 2 px en haut (`ScrollFx`).
+
 ## Règles de composition
 - Marges généreuses : 80px de côté sur desktop, 20–24px sur mobile. Sections séparées par des filets 1px `line`, pas par des blocs colorés.
 - Boutons : rectangulaires (pas d'arrondi), texte 12–13px majuscules espacées. Primaire = fond `ink` texte `sand` ; accent = fond `terracotta` ; secondaire = texte souligné 1px.

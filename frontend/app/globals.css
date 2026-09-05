@@ -16,10 +16,13 @@
   --font-mono: var(--font-mono), "DM Mono", "SFMono-Regular", Menlo, monospace;
 
   /* Relief : ombres chaudes superposées (teintées ink, jamais grises) */
-  --shadow-soft: 0 1px 2px rgba(34, 27, 24, 0.06), 0 8px 24px -12px rgba(34, 27, 24, 0.22);
-  --shadow-lift: 0 2px 4px rgba(34, 27, 24, 0.08), 0 20px 48px -16px rgba(34, 27, 24, 0.32);
-  --shadow-deep: 0 4px 8px rgba(34, 27, 24, 0.10), 0 40px 80px -24px rgba(34, 27, 24, 0.45);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(34, 27, 24, 0.06);
+  --shadow-soft: 0 1px 1px rgba(34, 27, 24, 0.05), 0 2px 4px -1px rgba(34, 27, 24, 0.06), 0 10px 24px -12px rgba(34, 27, 24, 0.20);
+  --shadow-lift: 0 1px 2px rgba(34, 27, 24, 0.07), 0 6px 12px -4px rgba(34, 27, 24, 0.10), 0 24px 48px -16px rgba(34, 27, 24, 0.28);
+  --shadow-deep: 0 2px 4px rgba(34, 27, 24, 0.10), 0 12px 24px -8px rgba(34, 27, 24, 0.16), 0 48px 88px -28px rgba(34, 27, 24, 0.42);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -1px 0 rgba(34, 27, 24, 0.05);
+  /* Arête haute éclairée : le détail qui donne l'impression d'un objet réel */
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --edge-light-strong: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -75,28 +78,35 @@ body {
   text-transform: uppercase;
   font-weight: 500;
   border: 1px solid transparent;
-  transition: background-color 0.25s, color 0.25s, border-color 0.25s, opacity 0.25s, transform 0.35s var(--ease-out-expo), box-shadow 0.35s var(--ease-out-expo);
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s, opacity 0.25s,
+              transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo), filter 0.25s;
   cursor: pointer;
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-soft), var(--edge-light);
 }
-.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
-.btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--shadow-soft); transition-duration: 0.1s; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lift), var(--edge-light); filter: brightness(1.04); }
+/* Appui franc : le bouton s'enfonce et son ombre disparaît sous lui */
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 5px rgba(34, 27, 24, 0.28), 0 1px 1px rgba(34, 27, 24, 0.10);
+  filter: brightness(0.97);
+  transition-duration: 0.06s;
+}
 .btn:focus-visible { outline: 2px solid var(--color-terracotta); outline-offset: 3px; }
-.btn:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
-.btn-primary { background: linear-gradient(180deg, #2E2522 0%, var(--color-ink) 100%); color: var(--color-sand); border-color: var(--color-ink); box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,0.08); }
+.btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
+.btn-primary { background: linear-gradient(180deg, #322824 0%, var(--color-ink) 100%); color: var(--color-sand); border-color: #1A1512; }
 .btn-primary:hover:not(:disabled) { background: var(--color-ink-soft); border-color: var(--color-ink-soft); }
-.btn-accent { background: linear-gradient(180deg, #AE5A41 0%, var(--color-terracotta) 100%); color: var(--color-sand); border-color: var(--color-terracotta); box-shadow: var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,0.12); }
+.btn-accent { background: linear-gradient(180deg, #B15C43 0%, var(--color-terracotta) 100%); color: var(--color-sand); border-color: #8A432D; }
 .btn-accent:hover:not(:disabled) { background: #8A432D; border-color: #8A432D; }
-.btn-outline { background: transparent; color: var(--color-ink); border-color: var(--color-ink); }
+.btn-outline { background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.25) 100%); color: var(--color-ink); border-color: var(--color-ink); box-shadow: var(--shadow-soft), var(--edge-light-strong); }
 .btn-outline:hover:not(:disabled) { background: var(--color-ink); color: var(--color-sand); }
-.btn-ghost { background: rgba(255,255,255,0.35); color: var(--color-ink-soft); border-color: var(--color-line); }
+.btn-ghost { background: linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.3) 100%); color: var(--color-ink-soft); border-color: var(--color-line); box-shadow: var(--shadow-soft), var(--edge-light-strong); }
 .btn-ghost:hover:not(:disabled) { border-color: var(--color-ink); color: var(--color-ink); }
 .link-underline { border-bottom: 1px solid currentColor; padding-bottom: 2px; transition: color 0.2s; }
 
 /* Cartes en relief */
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.25) 100%), var(--color-sand-deep);
-  border: 1px solid rgba(211, 195, 179, 0.8);
+  background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.22) 100%), var(--color-sand-deep);
+  border: 1px solid rgba(211, 195, 179, 0.75);
   box-shadow: var(--shadow-soft), var(--shadow-inset);
   transition: transform 0.45s var(--ease-out-expo), box-shadow 0.45s var(--ease-out-expo);
 }
@@ -126,7 +136,7 @@ body {
   transition: border-color 0.2s, box-shadow 0.2s;
   border-radius: 0;
   background: rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 1px 2px rgba(34, 27, 24, 0.05);
+  box-shadow: inset 0 1px 3px rgba(34, 27, 24, 0.07), 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .input:focus { border-color: var(--color-ink); box-shadow: 0 0 0 3px rgba(158, 79, 55, 0.12); }
 .input::placeholder { color: var(--color-muted); opacity: 0.8; }
@@ -162,6 +172,18 @@ body {
 .reveal-stagger.is-visible > :nth-child(6) { transition-delay: 0.5s; }
 .reveal-stagger.is-visible > :nth-child(7) { transition-delay: 0.6s; }
 .reveal-stagger.is-visible > :nth-child(8) { transition-delay: 0.7s; }
+
+/* Barre de progression de lecture (JS : --scroll) */
+.progress-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 60; pointer-events: none;
+  background: linear-gradient(90deg, var(--color-terracotta), var(--color-terracotta-soft));
+  transform: scaleX(var(--scroll, 0)); transform-origin: 0 50%;
+  transition: transform 0.1s linear;
+}
+
+/* Le header se décolle du contenu dès qu'on défile */
+.glass { transition: box-shadow 0.35s var(--ease-out-expo), background-color 0.35s; }
+.glass[data-scrolled="true"] { box-shadow: 0 1px 0 rgba(34, 27, 24, 0.06), 0 12px 28px -18px rgba(34, 27, 24, 0.4); }
 
 /* Bandeau d'avis défilant */
 .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Jost, DM_Mono } from "next/font/google";
 import "./globals.css";
+import ScrollFx from "./components/ScrollFx";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${cormorant.variable} ${jost.variable} ${mono.variable}`}>
-      <body className="bg-sand text-ink antialiased">{children}</body>
+      <body className="bg-sand text-ink antialiased"><ScrollFx />{children}</body>
     </html>
   );
 }

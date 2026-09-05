@@ -66,6 +66,8 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - Retour depuis Stripe géré dans la galerie (`?paiement=cs_...` → confirmation + bandeau + nettoyage de l'URL ; `?paiement=annule` → message).
 - **Navigation** : bouton « ← Accueil » sur les pages de connexion et d'inscription.
 
+- **Passe relief (5 sept., nuit)** : échelle d'ombres en 3 couches (contact + ambiante + arête haute éclairée), boutons avec enfoncement réel au clic, cartes et champs en profondeur, header qui se décolle au défilement, barre de progression de lecture (`ScrollFx`). Choix assumé : **pas** de bordures blanches/noires marquées, qui datent le design. Voir `DESIGN.md`.
+
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration et tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
