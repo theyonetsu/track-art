@@ -78,29 +78,29 @@ body {
   text-transform: uppercase;
   font-weight: 500;
   border: 1px solid transparent;
-  transition: background-color 0.25s, color 0.25s, border-color 0.25s, opacity 0.25s,
-              transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo), filter 0.25s;
+  transition: background-color 0.25s, color 0.25s, border-color 0.25s, opacity 0.2s,
+              transform 0.4s var(--ease-out-expo), box-shadow 0.4s var(--ease-out-expo);
   cursor: pointer;
   box-shadow: var(--shadow-soft), var(--edge-light);
 }
-.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lift), var(--edge-light); filter: brightness(1.04); }
+.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--shadow-lift), var(--edge-light); opacity: 0.9; }
 /* Appui franc : le bouton s'enfonce et son ombre disparaît sous lui */
 .btn:active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: inset 0 2px 5px rgba(34, 27, 24, 0.28), 0 1px 1px rgba(34, 27, 24, 0.10);
-  filter: brightness(0.97);
+  opacity: 0.86;
   transition-duration: 0.06s;
 }
 .btn:focus-visible { outline: 2px solid var(--color-terracotta); outline-offset: 3px; }
 .btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
 .btn-primary { background: linear-gradient(180deg, #322824 0%, var(--color-ink) 100%); color: var(--color-sand); border-color: #1A1512; }
-.btn-primary:hover:not(:disabled) { background: var(--color-ink-soft); border-color: var(--color-ink-soft); }
+
 .btn-accent { background: linear-gradient(180deg, #B15C43 0%, var(--color-terracotta) 100%); color: var(--color-sand); border-color: #8A432D; }
-.btn-accent:hover:not(:disabled) { background: #8A432D; border-color: #8A432D; }
+
 .btn-outline { background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.25) 100%); color: var(--color-ink); border-color: var(--color-ink); box-shadow: var(--shadow-soft), var(--edge-light-strong); }
-.btn-outline:hover:not(:disabled) { background: var(--color-ink); color: var(--color-sand); }
+
 .btn-ghost { background: linear-gradient(180deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.3) 100%); color: var(--color-ink-soft); border-color: var(--color-line); box-shadow: var(--shadow-soft), var(--edge-light-strong); }
-.btn-ghost:hover:not(:disabled) { border-color: var(--color-ink); color: var(--color-ink); }
+.btn-ghost:hover:not(:disabled) { border-color: var(--color-ink); }
 .link-underline { border-bottom: 1px solid currentColor; padding-bottom: 2px; transition: color 0.2s; }
 
 /* Cartes en relief */

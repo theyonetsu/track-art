@@ -23,7 +23,7 @@ Pas de bordures blanches ou noires marquées (effet daté). Le relief vient de t
 1. une ombre de **contact** très serrée (1–2 px, opacité ≤ 0,07) ;
 2. une ombre **ambiante** large et diffuse (24–48 px, opacité ≤ 0,3) ;
 3. un **liseré clair d'1 px sur l'arête haute** (`--edge-light`, `--edge-light-strong`) qui simule une lumière venant du dessus.
-Boutons : dégradé vertical très léger, survol = lift de 2 px + ombre plus large, clic = enfoncement réel (`translateY(1px)` + ombre interne). Champs : légère profondeur interne au repos, halo terracotta au focus.
+Boutons : dégradé vertical très léger, survol = lift de 2 px + ombre plus large + légère baisse d'opacité (0,9). **Jamais d'éclaircissement ni de changement de couleur au survol** — ça produit un « flash » désagréable. Clic = enfoncement réel (`translateY(1px)` + ombre interne + opacité 0,86). Champs : légère profondeur interne au repos, halo terracotta au focus.
 Header collant : ombre qui apparaît uniquement au défilement (`.glass[data-scrolled]`). Barre de progression de lecture de 2 px en haut (`ScrollFx`).
 
 ## Règles de composition
