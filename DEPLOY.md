@@ -8,7 +8,8 @@ Tout est prêt côté code : Dockerfiles, migrations automatiques, sonde `/healt
 | GitHub | héberger le code | oui |
 | Railway.app | faire tourner backend + frontend + PostgreSQL | crédit d'essai puis ~5 $/mois |
 | Cloudflare R2 | stocker les photos (privé) | 10 Go gratuits |
-| PayPal Developer | paiements | oui |
+| Stripe | paiements par carte (recommandé) | oui, commission par transaction |
+| PayPal Developer | paiements PayPal (optionnel) | oui |
 | Brevo (ou Resend) | emails (lien, rappel, confirmation) | 300 emails/jour gratuits |
 | Registrar du domaine trak.art | DNS | domaine déjà acheté |
 
@@ -25,6 +26,13 @@ git push -u origin main
 3. Tester un achat avec un compte acheteur sandbox (onglet *Testing tools → Sandbox accounts*).
 4. Pour encaisser réellement : refaire la même chose dans l'onglet **Live** et passer `PAYPAL_MODE=live`.
 5. Optionnel : Webhooks → ajouter `https://api.trak.art/payments/webhook` (événement `PAYMENT.CAPTURE.COMPLETED`) → `PAYPAL_WEBHOOK_ID`.
+
+## 2 bis. Stripe — carte bancaire (10 min)
+1. Créer un compte sur https://dashboard.stripe.com (email + mot de passe, aucun statut particulier requis pour tester).
+2. Laisser le tableau de bord en **mode test** (interrupteur en haut à droite) → Développeurs → Clés API → copier la **clé secrète** `sk_test_...`.
+3. Backend : `STRIPE_SECRET_KEY=sk_test_...`. Rien à mettre côté frontend (le client est redirigé vers la page de paiement hébergée par Stripe).
+4. Tester avec la carte `4242 4242 4242 4242`, n'importe quelle date future et n'importe quel CVC.
+5. Pour encaisser réellement : activer le compte (identité, IBAN, statut d'entreprise ou auto-entrepreneur) puis remplacer par la clé `sk_live_...`.
 
 ## 3. Cloudflare R2 (10 min)
 1. Cloudflare → R2 → Create bucket `trackart-photos` (**ne pas** activer l'accès public).

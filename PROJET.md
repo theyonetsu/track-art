@@ -60,6 +60,12 @@ Dossier : `C:\Users\gamer\Desktop\track-art` (backend/, frontend/, docker-compos
 - **CGV** : `/cgv` (modèle avec crochets), lien dans le footer et à l'inscription.
 - ⚠️ **À faire par Yonetsu** : `cd backend && npx prisma migrate dev` (nouvelle migration `all_photos_price`), puis DEPLOY.md étapes 2 à 5 avec ses comptes.
 
+## Fait le 5 sept. (nuit) — avis, carte bancaire, navigation
+- **Avis** : composant `Testimonials` — 10 avis courts (prénom + ville, 5 étoiles) sur deux rangées qui défilent en sens inverse (CSS marquee, pause au survol, figé si `prefers-reduced-motion`). Remplace le gros bloc citation. **Avis illustratifs à remplacer par de vrais retours.**
+- **Paiement par carte (Stripe Checkout)** : `POST /payments/stripe/create-session` (photos / all / extension) et `POST /payments/stripe/confirm` (vérifie `payment_status` + montant avant de déverrouiller), `GET /payments/methods` pour n'afficher que les moyens réellement configurés. Application du paiement factorisée dans `applyPayment()` (partagée PayPal / Stripe). Aucune dépendance ajoutée (API REST en form-urlencoded). Clé attendue : `STRIPE_SECRET_KEY`.
+- Retour depuis Stripe géré dans la galerie (`?paiement=cs_...` → confirmation + bandeau + nettoyage de l'URL ; `?paiement=annule` → message).
+- **Navigation** : bouton « ← Accueil » sur les pages de connexion et d'inscription.
+
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration et tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.

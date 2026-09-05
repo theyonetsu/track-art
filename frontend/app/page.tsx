@@ -4,6 +4,7 @@ import SiteFooter from "./components/SiteFooter";
 import HeroStack from "./components/HeroStack";
 import PhoneMock from "./components/PhoneMock";
 import Reveal from "./components/Reveal";
+import Testimonials from "./components/Testimonials";
 
 const steps = [
   { n: "01", title: "Déposez", text: "Importez vos photos en un glisser-déposer. Miniatures et filigrane sont générés automatiquement ; vos originaux restent privés, hors de portée." },
@@ -15,7 +16,7 @@ const perks = [
   ["Previews protégées", "Filigrane, basse définition, téléchargement désactivé. La HD n'existe qu'après paiement."],
   ["Pensé pour le mobile", "Vos clients sélectionnent depuis leur téléphone, sans application ni compte."],
   ["Expiration automatique", "30 jours après la première ouverture, la galerie et ses fichiers disparaissent."],
-  ["Paiement intégré", "PayPal et cartes bancaires, déblocage instantané. Aucune facture à faire."],
+  ["Paiement intégré", "Carte bancaire, Apple Pay, Google Pay ou PayPal. Déblocage instantané, aucune facture à faire."],
 ];
 
 export default function Home() {
@@ -37,20 +38,21 @@ export default function Home() {
             <Link href="/inscription" className="btn btn-accent">Créer ma galerie</Link>
             <a href="#exemples" className="label link-underline hover:text-terracotta">Voir la galerie côté client</a>
           </div>
-          <p className="text-sm text-muted">Sans abonnement · Paiement sécurisé PayPal · Stockage privé</p>
+          <p className="text-sm text-muted">Sans abonnement · Paiement par carte ou PayPal · Stockage privé</p>
         </div>
         <div className="lg:col-span-7 fade-up" style={{ animationDelay: "0.15s" }}>
           <HeroStack />
         </div>
       </section>
 
-      {/* Citation */}
-      <Reveal as="section" className="mx-6 md:mx-20 card px-8 md:px-12 py-8 md:py-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <p className="font-serif italic text-2xl md:text-3xl text-ink leading-snug max-w-3xl">
-          « Mes clients font leur sélection le soir même. Je n'envoie plus un seul WeTransfer, et les tirages supplémentaires se vendent tout seuls. »
-        </p>
-        <p className="label text-muted shrink-0">[Nom du photographe] · [Ville]</p>
+      {/* Avis */}
+      <Reveal className="px-6 md:px-20 flex flex-col gap-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <p className="eyebrow">Ils l'utilisent au quotidien</p>
+          <p className="meta">Photographes mariage, famille, studio et corporate</p>
+        </div>
       </Reveal>
+      <Testimonials />
 
       {/* Bande d'ambiance */}
       <Reveal stagger as="section" className="mt-16 px-6 md:px-20 grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-4 items-end">

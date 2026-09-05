@@ -149,14 +149,19 @@ export class PaymentsService {
       throw new BadRequestException('Paiement non complété');
     }
 
-    await this.prisma.payment.update({
-      where: { id: internalId },
-      data: { status: 'completed' },
-    });
+    return this.applyPayment(payment);
+  }
+
+  /**
+   * Applique un paiement confirmé (quel que soit le prestataire) :
+   * marque le paiement payé puis déverrouille / prolonge selon son type.
+   */
+  private async applyPayment(payment: { id: string; type: string; galleryId: string; amount: number; photoIds: string[] }) {
+    await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'completed' } });
 
     if (payment.type === 'BuyAllPhotos') {
       const r = await this.prisma.photo.updateMany({ where: { galleryId: payment.galleryId, unlocked: false }, data: { unlocked: true, paid: true } });
-      this.logger.log(`Payment captured: ${internalId} — toutes les photos déverrouillées (${r.count})`);
+      this.logger.log(`Paiement ${payment.id} — toutes les photos déverrouillées (${r.count})`);
       return { success: true, all: true, count: r.count };
     }
 
@@ -167,11 +172,11 @@ export class PaymentsService {
       const expiresAt = new Date(base.getTime() + settings.extensionDays * 86400000);
       await this.prisma.extension.create({ data: { galleryId: g.id, days: settings.extensionDays, amount: payment.amount } });
       await this.prisma.gallery.update({ where: { id: g.id }, data: { expiresAt } });
-      this.logger.log(`Gallery ${g.id} extended by ${settings.extensionDays} days`);
+      this.logger.log(`Galerie ${g.id} prolongée de ${settings.extensionDays} jours`);
       return { success: true, extended: true, expiresAt };
     }
 
-    // Déverrouillage : les photos incluses restent gratuites, le reste est marqué payé
+    // Photos : les incluses restent gratuites, le reste est marqué payé
     const { included, extras } = await this.splitSelection(payment.galleryId, payment.photoIds).catch(() => ({ included: [], extras: [] } as any));
     if (included.length) {
       await this.prisma.photo.updateMany({ where: { id: { in: included.map((p: any) => p.id) } }, data: { unlocked: true, paid: false } });
@@ -182,7 +187,7 @@ export class PaymentsService {
     // Filet de sécurité : tout ce qui figure dans le paiement est déverrouillé
     await this.prisma.photo.updateMany({ where: { id: { in: payment.photoIds }, unlocked: false }, data: { unlocked: true, paid: true } });
 
-    this.logger.log(`Payment captured: ${internalId} — ${payment.photoIds.length} photos déverrouillées`);
+    this.logger.log(`Paiement ${payment.id} — ${payment.photoIds.length} photos déverrouillées`);
     return { success: true, photoIds: payment.photoIds };
   }
 
@@ -236,6 +241,117 @@ export class PaymentsService {
     if (!order.id) { this.logger.error('PayPal createOrder error: ' + JSON.stringify(order)); throw new BadRequestException('Erreur création commande PayPal'); }
     await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: order.id } });
     return { paypalOrderId: order.id, internalId: payment.id, total, count: locked.length };
+  }
+
+  // ─── Stripe (carte bancaire, Apple Pay, Google Pay) ────────────────────────
+
+  private get stripeKey() {
+    const k = process.env.STRIPE_SECRET_KEY ?? '';
+    return k.startsWith('sk_') ? k : '';
+  }
+
+  get stripeEnabled() {
+    return !!this.stripeKey;
+  }
+
+  /** Appel de l'API Stripe en form-urlencoded (aucune dépendance à installer). */
+  private async stripeCall(path: string, method: 'GET' | 'POST', form?: Record<string, string>) {
+    if (!this.stripeKey) {
+      throw new ServiceUnavailableException("Paiement par carte indisponible : Stripe n'est pas encore configuré (STRIPE_SECRET_KEY).");
+    }
+    const res = await fetch(`https://api.stripe.com/v1${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${this.stripeKey}`,
+        ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
+      },
+      ...(form ? { body: new URLSearchParams(form).toString() } : {}),
+    });
+    const data = await res.json() as any;
+    if (!res.ok) {
+      this.logger.error(`Stripe ${path} : ${JSON.stringify(data?.error ?? data)}`);
+      throw new BadRequestException(data?.error?.message ?? 'Erreur Stripe');
+    }
+    return data;
+  }
+
+  /**
+   * Prépare un paiement (photos supplémentaires, forfait complet ou prolongation)
+   * et renvoie l'URL de la page de paiement Stripe.
+   */
+  async createStripeSession(kind: 'photos' | 'all' | 'extension', galleryId: string, photoIds: string[] = [], galleryToken?: string) {
+    const gallery = await this.galleries.assertPublicAccess(galleryId, galleryToken);
+    const settings = await this.galleries.effectiveSettings(gallery);
+
+    let amount = 0, label = '', ids: string[] = [], type = '';
+    if (kind === 'photos') {
+      if (!Array.isArray(photoIds) || !photoIds.length) throw new BadRequestException('Aucune photo sélectionnée');
+      const { included, extras, total } = await this.splitSelection(galleryId, photoIds);
+      if (total <= 0) throw new BadRequestException('Cette sélection est incluse dans le forfait : utilisez la confirmation gratuite');
+      amount = total; type = 'BuyExtraPhotos';
+      ids = [...included, ...extras].map((p) => p.id);
+      label = `${extras.length} photo(s) supplémentaire(s)`;
+    } else if (kind === 'all') {
+      if (!settings.allPhotosPrice || settings.allPhotosPrice <= 0) throw new BadRequestException("Cette galerie ne propose pas de forfait « toutes les photos »");
+      const locked = await this.prisma.photo.findMany({ where: { galleryId, unlocked: false }, select: { id: true } });
+      if (!locked.length) throw new BadRequestException('Toutes les photos sont déjà déverrouillées');
+      amount = settings.allPhotosPrice; type = 'BuyAllPhotos';
+      ids = locked.map((p) => p.id);
+      label = `Toutes les photos (${locked.length})`;
+    } else {
+      if (settings.extensionPrice <= 0) throw new BadRequestException("La prolongation n'est pas payante sur cette galerie");
+      amount = settings.extensionPrice; type = 'ExtendGallery';
+      label = `Prolongation de la galerie (${settings.extensionDays} jours)`;
+    }
+
+    const payment = await this.prisma.payment.create({
+      data: { galleryId, userId: gallery.userId, type, amount, photoIds: ids, ...this.split(amount, settings.commissionRate) },
+    });
+
+    const back = `${process.env.APP_URL ?? 'http://localhost:3000'}/g/${gallery.slug}`;
+    const session = await this.stripeCall('/checkout/sessions', 'POST', {
+      mode: 'payment',
+      success_url: `${back}?paiement={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${back}?paiement=annule`,
+      'line_items[0][quantity]': '1',
+      'line_items[0][price_data][currency]': 'eur',
+      'line_items[0][price_data][unit_amount]': String(Math.round(amount * 100)),
+      'line_items[0][price_data][product_data][name]': `${gallery.title} — ${label}`,
+      'metadata[paymentId]': payment.id,
+      client_reference_id: payment.id,
+      locale: 'auto',
+    });
+
+    await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: session.id } });
+    this.logger.log(`Session Stripe ${session.id} (${amount} €, ${type})`);
+    return { url: session.url as string, internalId: payment.id, total: amount };
+  }
+
+  /** Vérifie auprès de Stripe qu'une session est bien payée, puis applique le paiement. */
+  async confirmStripeSession(sessionId: string) {
+    if (!sessionId || !/^cs_[A-Za-z0-9_]+$/.test(sessionId)) throw new BadRequestException('Session invalide');
+    const session = await this.stripeCall(`/checkout/sessions/${sessionId}`, 'GET');
+    const paymentId = session?.metadata?.paymentId ?? session?.client_reference_id;
+    if (!paymentId) throw new BadRequestException('Session sans référence de paiement');
+
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new BadRequestException('Paiement introuvable');
+    if (payment.status === 'completed') return { success: true, already: true, photoIds: payment.photoIds };
+    if (session.payment_status !== 'paid') throw new BadRequestException('Paiement non confirmé par Stripe');
+    if (Math.round(payment.amount * 100) !== Number(session.amount_total)) {
+      this.logger.error(`Montant Stripe incohérent pour ${paymentId} : ${session.amount_total} vs ${payment.amount * 100}`);
+      throw new BadRequestException('Montant incohérent');
+    }
+    return this.applyPayment(payment);
+  }
+
+  /** Moyens de paiement actifs, pour l'affichage côté client. */
+  availableMethods() {
+    const id = process.env.PAYPAL_CLIENT_ID ?? '';
+    return {
+      paypal: !!id && !id.startsWith('ton_'),
+      card: this.stripeEnabled,
+    };
   }
 
   /** Historique des ventes du photographe */

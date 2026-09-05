@@ -31,7 +31,7 @@ const sections: { title: string; items: { q: string; a: string }[] }[] = [
     title: "Paiements et commission",
     items: [
       { q: "Combien coûte Track.Art ?", a: "Aucun abonnement, aucun frais fixe. Track.Art prélève une commission uniquement sur ce que vos clients achètent en plus de leur forfait (photos supplémentaires, prolongations). Le pourcentage en vigueur est affiché dans votre espace, sur chaque galerie et sur chaque vente." },
-      { q: "Comment mes clients paient-ils ?", a: "Par PayPal ou carte bancaire via PayPal, sans créer de compte PayPal. Le déblocage des photos est immédiat après confirmation du paiement." },
+      { q: "Comment mes clients paient-ils ?", a: "Par carte bancaire (Visa, Mastercard, Apple Pay, Google Pay) via Stripe, ou par PayPal. Aucun compte à créer pour le client, et le déblocage des photos est immédiat après confirmation du paiement." },
       { q: "Où suivre mes ventes ?", a: "Dans l'onglet Ventes : montant payé par le client, commission, net pour vous, galerie concernée, date et statut." },
     ],
   },

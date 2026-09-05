@@ -52,6 +52,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
   const [lightbox, setLightbox] = useState<Photo | null>(null);
   const [drawer, setDrawer] = useState<'photos' | 'extension' | 'all' | null>(null);
   const { lang, t } = getDict(gallery.languages);
+  const [methods, setMethods] = useState<{ paypal: boolean; card: boolean }>({ paypal: !!paypalClientId, card: false });
   const [banner, setBanner] = useState<string>('');
 
   const days = daysUntil(gallery.expiresAt);
@@ -88,6 +89,30 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
   }, [stepLightbox]);
 
   const refresh = useCallback(async () => { if (onRefresh) await onRefresh(); else router.refresh(); }, [onRefresh, router]);
+
+  // Moyens de paiement réellement configurés sur le serveur
+  useEffect(() => {
+    fetch(`${API}/payments/methods`).then((r) => (r.ok ? r.json() : null)).then((m) => m && setMethods(m)).catch(() => {});
+  }, []);
+
+  // Retour depuis la page de paiement par carte : on confirme puis on nettoie l'URL
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('paiement');
+    if (!p) return;
+    const clean = () => window.history.replaceState({}, '', window.location.pathname);
+    if (p === 'annule') { setBanner(t.canceled); clean(); return; }
+    if (!p.startsWith('cs_')) return;
+    setBanner(t.checkingPayment);
+    fetch(`${API}/payments/stripe/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: p }) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message ?? 'Erreur');
+        setBanner(t.paidBanner);
+        clean();
+        await refresh();
+      })
+      .catch((e) => { setBanner(e instanceof Error ? e.message : 'Erreur'); clean(); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSelectionDone = useCallback(async (paid: boolean) => {
     setDrawer(null); setSelected(new Set());
@@ -252,13 +277,22 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.total}</span><span className="num">{total} €</span></div>
             {total === 0 && <p className="help">{t.includedNote}</p>}
           </div>
-          {total > 0
-            ? <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
-                const res = await fetch(`${API}/payments/create-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id, photoIds: Array.from(selected) }) });
-                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
-                return res.json();
-              }} onDone={() => onSelectionDone(true)} />
-            : <FreeConfirm t={t} slug={gallery.slug} ids={Array.from(selected)} headers={headers} onDone={() => onSelectionDone(false)} />}
+          {total > 0 ? (
+            <div className="flex flex-col gap-4">
+              {methods.card && <CardButton t={t} kind="photos" galleryId={gallery.id} photoIds={Array.from(selected)} headers={headers} amount={total} />}
+              {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
+              {methods.paypal && (
+                <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
+                  const res = await fetch(`${API}/payments/create-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id, photoIds: Array.from(selected) }) });
+                  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
+                  return res.json();
+                }} onDone={() => onSelectionDone(true)} />
+              )}
+              {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+            </div>
+          ) : (
+            <FreeConfirm t={t} slug={gallery.slug} ids={Array.from(selected)} headers={headers} onDone={() => onSelectionDone(false)} />
+          )}
         </Drawer>
       )}
 
@@ -268,11 +302,18 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <p className="text-ink-soft">{t.extendText(days, gallery.extensionDays)}</p>
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.extension}</span><span className="num">{gallery.extensionPrice} €</span></div>
           </div>
-          <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
-            const res = await fetch(`${API}/payments/create-extension-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
-            return res.json();
-          }} onDone={onExtended} />
+          <div className="flex flex-col gap-4">
+            {methods.card && <CardButton t={t} kind="extension" galleryId={gallery.id} headers={headers} amount={gallery.extensionPrice} />}
+            {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
+            {methods.paypal && (
+              <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
+                const res = await fetch(`${API}/payments/create-extension-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur lors de la création de la commande');
+                return res.json();
+              }} onDone={onExtended} />
+            )}
+            {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+          </div>
         </Drawer>
       )}
 
@@ -286,11 +327,18 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <p className="text-ink-soft">{t.allText(selectablePhotos.length)}</p>
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.allLine(selectablePhotos.length)}</span><span className="num">{gallery.allPhotosPrice} €</span></div>
           </div>
-          <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
-            const res = await fetch(`${API}/payments/create-all-photos-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur');
-            return res.json();
-          }} onDone={onAllDone} />
+          <div className="flex flex-col gap-4">
+            {methods.card && <CardButton t={t} kind="all" galleryId={gallery.id} headers={headers} amount={gallery.allPhotosPrice!} />}
+            {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
+            {methods.paypal && (
+              <PayPalButtons t={t} lang={lang} paypalClientId={paypalClientId} create={async () => {
+                const res = await fetch(`${API}/payments/create-all-photos-order`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ galleryId: gallery.id }) });
+                if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message ?? 'Erreur');
+                return res.json();
+              }} onDone={onAllDone} />
+            )}
+            {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+          </div>
         </Drawer>
       )}
 
@@ -312,6 +360,36 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Paiement par carte (Stripe Checkout) ────────────────────────────────────
+function CardButton({ t, kind, galleryId, photoIds, headers, amount }: { t: Dict; kind: 'photos' | 'all' | 'extension'; galleryId: string; photoIds?: string[]; headers: Record<string, string>; amount: number }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function pay() {
+    setLoading(true); setError('');
+    try {
+      const res = await fetch(`${API}/payments/stripe/create-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ kind, galleryId, photoIds }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.message ?? 'Erreur');
+      window.location.href = data.url;
+    } catch (err) { setError(err instanceof Error ? err.message : 'Erreur'); setLoading(false); }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button onClick={pay} disabled={loading} className="btn btn-primary w-full">
+        {loading ? t.redirecting : `${t.payCard} · ${amount} €`}
+      </button>
+      <p className="help text-center">{t.cardHint}</p>
+      {error && <p className="text-terracotta text-sm text-center">{error}</p>}
     </div>
   );
 }

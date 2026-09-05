@@ -24,7 +24,10 @@ export default function Inscription() {
   }
 
   return (
-    <main className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2">
+    <main className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2 relative">
+      <Link href="/" className="absolute top-6 left-6 z-10 label text-ink-soft hover:text-terracotta transition-colors flex items-center gap-2">
+        <span aria-hidden="true">←</span> Accueil
+      </Link>
       <div className="hidden lg:flex flex-col justify-between p-16 relative" style={{ backgroundImage: "url(/showcase/bouquet.webp)", backgroundSize: "cover", backgroundPosition: "center" }}><div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(239,230,218,0.55) 0%, rgba(239,230,218,0.85) 100%)" }} />
         <div className="relative"><Logo size="md" /></div>
         <div className="relative flex flex-col gap-5 max-w-md">

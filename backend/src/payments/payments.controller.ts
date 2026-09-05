@@ -21,6 +21,20 @@ export class PaymentsController {
     return this.svc.createAllPhotosOrder(body.galleryId, token);
   }
 
+  /** Moyens de paiement disponibles (selon la configuration du serveur) */
+  @Get('methods')
+  methods() { return this.svc.availableMethods(); }
+
+  @Post('stripe/create-session')
+  stripeSession(@Body() body: { kind: 'photos' | 'all' | 'extension'; galleryId: string; photoIds?: string[] }, @Headers('x-gallery-token') token?: string) {
+    return this.svc.createStripeSession(body.kind, body.galleryId, body.photoIds ?? [], token);
+  }
+
+  @Post('stripe/confirm')
+  stripeConfirm(@Body() body: { sessionId: string }) {
+    return this.svc.confirmStripeSession(body.sessionId);
+  }
+
   @Post('capture-order')
   captureOrder(@Body() body: { paypalOrderId: string; internalId: string }) {
     return this.svc.captureOrder(body.paypalOrderId, body.internalId);

@@ -163,6 +163,13 @@ body {
 .reveal-stagger.is-visible > :nth-child(7) { transition-delay: 0.6s; }
 .reveal-stagger.is-visible > :nth-child(8) { transition-delay: 0.7s; }
 
+/* Bandeau d'avis défilant */
+.marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee-track { display: flex; gap: 1rem; width: max-content; animation: marquee 64s linear infinite; }
+.marquee-reverse { animation-direction: reverse; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 /* Grain très léger pour donner de la matière au fond */
 .grain { position: relative; }
 .grain::before {
@@ -173,6 +180,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-stagger > * { opacity: 1; transform: none; transition: none; }
   .fade-up, .slide-up, .float { animation: none; }
+  .marquee-track { animation: none; flex-wrap: wrap; width: 100%; justify-content: center; }
 }
 
 /* rev 2 */
