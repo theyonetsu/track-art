@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import GalleryClient, { type Gallery, type Photo } from './GalleryClient';
 import { getDict } from './i18n';
 
@@ -56,7 +57,7 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
   return (
     <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6 grain">
       <form onSubmit={submit} className="w-full max-w-sm card p-10 flex flex-col gap-6 fade-up text-center">
-        <p className="font-serif text-xs tracking-[0.32em] uppercase">Track<span className="text-terracotta">.</span>Art</p>
+        <Link href="/" className="font-serif text-xs tracking-[0.32em] uppercase hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
         <div className="flex flex-col gap-2">
           <h1 className="font-serif text-4xl leading-tight">{gallery.title}</h1>
           {gallery.studioName && <p className="meta">{t.by} {gallery.studioName}</p>}

@@ -1,5 +1,24 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
+
+export type Policy = {
+  defaults: { includedPhotos: number; extraPhotoPrice: number; allPhotosPrice: number | null; extensionPrice: number; extensionDays: number; expiryDays: number };
+  rights: { allowPricing: boolean; allowExpiry: boolean; allowAllPhotos: boolean; priceMin: number; priceMax: number; maxExpiryDays: number };
+  commissionRate: number;
+};
+
+/** Ce que la plateforme autorise le photographe à régler (null tant que non chargé). */
+export function usePolicy() {
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  useEffect(() => { api<Policy>("/settings/policy").then(setPolicy).catch(() => {}); }, []);
+  return policy;
+}
+
+/** Pastille affichée à la place d'un champ verrouillé par la plateforme. */
+export function LockedBadge({ children = "Fixé par Track.Art" }: { children?: React.ReactNode }) {
+  return <span className="badge badge-ink text-[10px]">{children}</span>;
+}
 
 export function Section({ title, hint, children, className = "" }: { title: string; hint?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -13,10 +32,10 @@ export function Section({ title, hint, children, className = "" }: { title: stri
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function Field({ label, hint, children, badge }: { label: string; hint?: string; children: React.ReactNode; badge?: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="field-label">{label}</span>
+      <span className="field-label flex items-center gap-2 flex-wrap">{label}{badge}</span>
       {children}
       {hint && <span className="help">{hint}</span>}
     </label>

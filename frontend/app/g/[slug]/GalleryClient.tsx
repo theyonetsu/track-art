@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getDict, LOCALE, PAYPAL_LOCALE, type Dict, type Lang } from './i18n';
 
@@ -386,6 +387,19 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           )}
         </div>
       )}
+
+      {/* Pied de galerie : retour en haut + retour vers Track.Art */}
+      <footer className="border-t border-line mt-16">
+        <div className="max-w-7xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="tap label text-muted hover:text-terracotta transition-colors inline-flex items-center gap-2">
+            <span aria-hidden>↑</span> {t.backTop}
+          </button>
+          <p className="meta text-center">
+            {t.poweredBy}{' '}
+            <Link href="/" className="font-serif tracking-[0.24em] uppercase text-ink hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

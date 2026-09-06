@@ -39,11 +39,24 @@ model User {
 /// Réglages globaux de la plateforme (une seule ligne)
 model Settings {
   id              String   @id @default(uuid())
+  // Valeurs par défaut appliquées aux photographes qui n'ont rien défini
+  includedPhotos  Int      @default(30) // photos incluses dans le forfait
+  extraPhotoPrice Int      @default(2)
+  allPhotosPrice  Int? // null = achat groupé non proposé par défaut
   extensionPrice  Int      @default(5)
   extensionDays   Int      @default(7)
-  extraPhotoPrice Int      @default(2)
+  expiryDays      Int      @default(30)
   commissionRate  Float    @default(10) // % prélevé par Track.Art sur les ventes
-  updatedAt       DateTime @updatedAt
+
+  // Droits accordés aux photographes sur ces réglages
+  allowPricing    Boolean  @default(true) // peut fixer ses propres prix
+  allowExpiry     Boolean  @default(true) // peut fixer durée de validité et prolongation
+  allowAllPhotos  Boolean  @default(true) // peut proposer l'achat groupé
+  priceMin        Int      @default(0) // borne basse de tous les prix (€)
+  priceMax        Int      @default(500) // borne haute de tous les prix (€)
+  maxExpiryDays   Int      @default(90) // durée de validité maximale (jours)
+
+  updatedAt DateTime @updatedAt
 }
 
 model Gallery {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import Reveal from "../components/Reveal";
+import BackLink from "../components/BackLink";
 
 export const metadata = { title: "Aide & FAQ — Track.Art" };
 
@@ -52,6 +53,7 @@ export default function AidePage() {
       <SiteHeader />
       <main className="px-6 md:px-20 py-16 md:py-24 flex flex-col gap-16 max-w-5xl">
         <div className="flex flex-col gap-4 fade-up">
+          <BackLink className="mb-2" />
           <p className="eyebrow">Aide &amp; FAQ</p>
           <h1 className="font-serif text-5xl md:text-6xl leading-tight">Tout ce qu’il faut savoir avant votre première galerie.</h1>
           <p className="text-lg text-ink-soft max-w-2xl">Une question qui n’est pas ici ? <Link href="/contact" className="link-underline text-ink hover:text-terracotta">Écrivez-nous</Link>, nous répondons sous 48 h ouvrées.</p>

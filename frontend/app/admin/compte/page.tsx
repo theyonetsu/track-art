@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import AdminShell from "../../components/AdminShell";
-import { Section, Field, Toast, Stat } from "../../components/ui";
+import { Section, Field, Toast, Stat, usePolicy, LockedBadge } from "../../components/ui";
 import { api, euros } from "../../lib/api";
 
 type Me = {
@@ -19,6 +19,7 @@ export default function ComptePage() {
   const [saving, setSaving] = useState(false);
   const [twofa, setTwofa] = useState<{ qr: string } | null>(null);
   const [totp, setTotp] = useState("");
+  const policy = usePolicy();
 
   const load = useCallback(async () => { const m = await api<Me>("/me"); setMe(m); setForm(m); }, []);
   useEffect(() => { load().catch(() => {}); }, [load]);
@@ -49,6 +50,17 @@ export default function ComptePage() {
 
   if (!me) return <AdminShell title="Mon compte"><p className="meta">Chargement…</p></AdminShell>;
 
+  const lockPrice = !!policy && !policy.rights.allowPricing;
+  const lockDays = !!policy && !policy.rights.allowExpiry;
+  const noAllPhotos = !!policy && !policy.rights.allowAllPhotos;
+  const priceHint = lockPrice ? undefined : policy ? `Entre ${policy.rights.priceMin} € et ${policy.rights.priceMax} €.` : undefined;
+  const editableDefaults: (keyof Me)[] = [
+    "defaultIncluded",
+    ...(lockPrice ? [] : (["defaultExtraPhotoPrice", "defaultExtensionPrice"] as (keyof Me)[])),
+    ...(lockDays ? [] : (["defaultExpiryDays", "defaultExtensionDays"] as (keyof Me)[])),
+    ...(lockPrice || noAllPhotos ? [] : (["defaultAllPhotosPrice"] as (keyof Me)[])),
+  ];
+
   return (
     <AdminShell title="Mon compte">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10 reveal-stagger is-visible">
@@ -73,21 +85,37 @@ export default function ComptePage() {
         </Section>
 
         <Section title="Réglages par défaut" hint="Pré-remplis à chaque nouvelle galerie. Modifiables ensuite galerie par galerie.">
+          {policy && (!policy.rights.allowPricing || !policy.rights.allowExpiry || !policy.rights.allowAllPhotos) && (
+            <p className="help border-l-2 border-terracotta pl-3">Certains réglages sont fixés par Track.Art et ne sont pas modifiables ici.</p>
+          )}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Photos incluses" hint="Nombre libre, sans limite."><input type="number" min={1} className="input num" value={form.defaultIncluded ?? 30} onChange={set("defaultIncluded")} /></Field>
-            <Field label="Prix photo supplémentaire (€)"><input type="number" min={0} className="input num" value={form.defaultExtraPhotoPrice ?? 2} onChange={set("defaultExtraPhotoPrice")} /></Field>
-            <Field label="Validité de la galerie (jours)" hint="À partir de la première ouverture du lien."><input type="number" min={1} className="input num" value={form.defaultExpiryDays ?? 30} onChange={set("defaultExpiryDays")} /></Field>
-            <Field label="Prolongation (€ / jours)">
+            <Field label="Photos incluses" hint="Nombre libre, sans limite.">
+              <input type="number" min={1} className="input num" value={form.defaultIncluded ?? 30} onChange={set("defaultIncluded")} />
+            </Field>
+            <Field label="Prix photo supplémentaire (€)" badge={lockPrice && <LockedBadge />} hint={priceHint}>
+              <input type="number" min={0} className="input num" disabled={lockPrice} value={lockPrice ? policy!.defaults.extraPhotoPrice : form.defaultExtraPhotoPrice ?? 2} onChange={set("defaultExtraPhotoPrice")} />
+            </Field>
+            <Field label="Validité de la galerie (jours)" badge={lockDays && <LockedBadge />} hint={lockDays ? undefined : policy ? `À partir de la première ouverture. ${policy.rights.maxExpiryDays} jours maximum.` : "À partir de la première ouverture du lien."}>
+              <input type="number" min={1} max={policy?.rights.maxExpiryDays} className="input num" disabled={lockDays} value={lockDays ? policy!.defaults.expiryDays : form.defaultExpiryDays ?? 30} onChange={set("defaultExpiryDays")} />
+            </Field>
+            <Field label="Prolongation (€ / jours)" badge={(lockPrice || lockDays) && <LockedBadge />}>
               <div className="flex gap-2">
-                <input type="number" min={0} className="input num" value={form.defaultExtensionPrice ?? 5} onChange={set("defaultExtensionPrice")} />
-                <input type="number" min={1} className="input num" value={form.defaultExtensionDays ?? 7} onChange={set("defaultExtensionDays")} />
+                <input type="number" min={0} className="input num" disabled={lockPrice} value={lockPrice ? policy!.defaults.extensionPrice : form.defaultExtensionPrice ?? 5} onChange={set("defaultExtensionPrice")} />
+                <input type="number" min={1} className="input num" disabled={lockDays} value={lockDays ? policy!.defaults.extensionDays : form.defaultExtensionDays ?? 7} onChange={set("defaultExtensionDays")} />
               </div>
             </Field>
           </div>
-          <Field label="Prix « toutes les photos » (€)" hint="Forfait pour débloquer d’un coup toutes les photos restantes d’une galerie. Vide = non proposé.">
-            <input type="number" min={0} className="input num" value={form.defaultAllPhotosPrice ?? ""} onChange={(e) => setForm({ ...form, defaultAllPhotosPrice: e.target.value === "" ? null : Number(e.target.value) })} placeholder="Non proposé" />
+          <Field
+            label="Prix « toutes les photos » (€)"
+            badge={(lockPrice || noAllPhotos) && <LockedBadge>{noAllPhotos ? "Désactivé par Track.Art" : "Fixé par Track.Art"}</LockedBadge>}
+            hint={noAllPhotos ? "L’achat groupé n’est pas proposé sur la plateforme." : "Forfait pour débloquer d’un coup toutes les photos restantes d’une galerie. Vide = non proposé."}
+          >
+            <input type="number" min={0} className="input num" disabled={lockPrice || noAllPhotos}
+              value={lockPrice || noAllPhotos ? policy!.defaults.allPhotosPrice ?? "" : form.defaultAllPhotosPrice ?? ""}
+              onChange={(e) => setForm({ ...form, defaultAllPhotosPrice: e.target.value === "" ? null : Number(e.target.value) })}
+              placeholder="Non proposé" />
           </Field>
-          <button onClick={() => save(["defaultIncluded", "defaultExtraPhotoPrice", "defaultExpiryDays", "defaultExtensionPrice", "defaultExtensionDays", "defaultAllPhotosPrice"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+          <button onClick={() => save(editableDefaults)} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
         </Section>
 
         <Section title="Sécurité" hint={`Connecté en tant que ${me.email}`}>

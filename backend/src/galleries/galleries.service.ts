@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { SettingsService } from '../settings/settings.service';
 
 type Actor = { sub: string; role: string };
 
@@ -19,6 +20,7 @@ export class GalleriesService {
     private prisma: PrismaService,
     private email: EmailService,
     private jwt: JwtService,
+    private settings: SettingsService,
   ) {}
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -33,24 +35,34 @@ export class GalleriesService {
     return g;
   }
 
-  /** Tarifs effectifs : valeur de la galerie, sinon défaut du photographe, sinon plateforme */
+  /**
+   * Tarifs effectifs : valeur de la galerie, sinon défaut du photographe, sinon plateforme.
+   * Si la plateforme a retiré le droit correspondant, sa valeur s'impose quoi qu'il arrive.
+   */
   async effectiveSettings(gallery: { userId: string | null; extraPhotoPrice: number | null; extensionPrice: number | null; extensionDays: number | null; allPhotosPrice?: number | null }) {
     const [user, platform] = await Promise.all([
       gallery.userId ? this.prisma.user.findUnique({ where: { id: gallery.userId } }) : null,
-      this.prisma.settings.findFirst(),
+      this.settings.get(),
     ]);
+    const pricing = platform.allowPricing;
+    const expiry = platform.allowExpiry;
     return {
-      extraPhotoPrice: gallery.extraPhotoPrice ?? user?.defaultExtraPhotoPrice ?? platform?.extraPhotoPrice ?? 2,
-      extensionPrice: gallery.extensionPrice ?? user?.defaultExtensionPrice ?? platform?.extensionPrice ?? 5,
-      extensionDays: gallery.extensionDays ?? user?.defaultExtensionDays ?? platform?.extensionDays ?? 7,
-      allPhotosPrice: gallery.allPhotosPrice ?? user?.defaultAllPhotosPrice ?? null,
-      commissionRate: platform?.commissionRate ?? 10,
+      extraPhotoPrice: pricing ? (gallery.extraPhotoPrice ?? user?.defaultExtraPhotoPrice ?? platform.extraPhotoPrice) : platform.extraPhotoPrice,
+      extensionPrice: pricing ? (gallery.extensionPrice ?? user?.defaultExtensionPrice ?? platform.extensionPrice) : platform.extensionPrice,
+      extensionDays: expiry ? (gallery.extensionDays ?? user?.defaultExtensionDays ?? platform.extensionDays) : platform.extensionDays,
+      allPhotosPrice: !platform.allowAllPhotos
+        ? platform.allPhotosPrice
+        : pricing
+          ? (gallery.allPhotosPrice ?? user?.defaultAllPhotosPrice ?? platform.allPhotosPrice)
+          : platform.allPhotosPrice,
+      commissionRate: platform.commissionRate,
       studioName: user?.studioName ?? user?.name ?? null,
       watermarkText: user?.watermarkText ?? user?.studioName ?? 'TRACK.ART',
     };
   }
 
-  private sanitize(body: Record<string, unknown>) {
+  private async sanitize(body: Record<string, unknown>) {
+    const policy = await this.settings.policy();
     const data: Record<string, unknown> = {};
     for (const f of EDITABLE) {
       if (!(f in body)) continue;
@@ -64,8 +76,18 @@ export class GalleriesService {
       if (f === 'eventDate' && v) v = new Date(v as string);
       data[f] = v;
     }
+
+    // Bornes et droits fixés par la plateforme
+    if (typeof data.extraPhotoPrice === 'number') this.settings.assertPrice(policy, 'Prix photo supplémentaire', data.extraPhotoPrice);
+    if (typeof data.extensionPrice === 'number') this.settings.assertPrice(policy, 'Prix de prolongation', data.extensionPrice);
+    if (typeof data.allPhotosPrice === 'number') {
+      if (!policy.rights.allowAllPhotos) throw new ForbiddenException("L'achat groupé est géré par la plateforme.");
+      this.settings.assertPrice(policy, 'Prix « toutes les photos »', data.allPhotosPrice);
+    }
+    if (typeof data.extensionDays === 'number') this.settings.assertDays(policy, 'Durée de prolongation', data.extensionDays, false);
+    if (typeof data.expiryDays === 'number') this.settings.assertDays(policy, 'Durée de validité', data.expiryDays, true);
+
     if ('maxSelection' in data && (data.maxSelection as number) < 1) throw new BadRequestException('Au moins 1 photo incluse');
-    if ('expiryDays' in data && (data.expiryDays as number) < 1) throw new BadRequestException('Durée de validité : au moins 1 jour');
     if (data.clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(data.clientEmail))) throw new BadRequestException('Email client invalide');
     return data;
   }
@@ -75,14 +97,15 @@ export class GalleriesService {
   async create(actor: Actor, body: Record<string, unknown>) {
     const user = await this.prisma.user.findUnique({ where: { id: actor.sub } });
     if (!user) throw new UnauthorizedException();
-    const data = this.sanitize(body);
+    const data = await this.sanitize(body);
+    const policy = await this.settings.policy();
     if (!data.title || !String(data.title).trim()) throw new BadRequestException('Le titre est obligatoire');
     const gallery = await this.prisma.gallery.create({
       data: {
         ...(data as any),
         userId: user.id,
         maxSelection: (data.maxSelection as number) ?? user.defaultIncluded,
-        expiryDays: (data.expiryDays as number) ?? user.defaultExpiryDays,
+        expiryDays: policy.rights.allowExpiry ? ((data.expiryDays as number) ?? user.defaultExpiryDays) : policy.defaults.expiryDays,
       },
     });
     if (body.password) await this.setPassword(gallery.id, actor, String(body.password));
@@ -113,7 +136,7 @@ export class GalleriesService {
 
   async update(id: string, actor: Actor, body: Record<string, unknown>) {
     await this.findOwned(id, actor);
-    const data = this.sanitize(body);
+    const data = await this.sanitize(body);
     const g = await this.prisma.gallery.update({ where: { id }, data: data as any });
     if ('password' in body) await this.setPassword(id, actor, body.password ? String(body.password) : null);
     return this.findById(id, actor);

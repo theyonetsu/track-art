@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SettingsService } from './settings.service';
-import { SettingsController } from './settings.controller';
+import { SettingsController, PolicyController } from './settings.controller';
 
-@Module({ providers: [SettingsService], controllers: [SettingsController], exports: [SettingsService] })
+@Module({ providers: [SettingsService], controllers: [SettingsController, PolicyController], exports: [SettingsService] })
 export class SettingsModule {}

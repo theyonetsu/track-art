@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, DragEvent, ChangeEvent } from
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AdminShell from "../../../components/AdminShell";
-import { Section, Field, Switch, Toast } from "../../../components/ui";
+import { Section, Field, Switch, Toast, usePolicy, LockedBadge } from "../../../components/ui";
 import { api, API, getToken, daysLeft, formatDate, euros } from "../../../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@ export default function AdminGalleryPage() {
   const [copied, setCopied] = useState(false);
   const [extendDays, setExtendDays] = useState(7);
   const fileRef = useRef<HTMLInputElement>(null);
+  const policy = usePolicy();
 
   const notify = (m: string, e = false) => setToast({ m, e });
 
@@ -111,6 +112,16 @@ export default function AdminGalleryPage() {
 
   if (!g) return <AdminShell><p className="meta">Chargement…</p></AdminShell>;
 
+  const lockPrice = !!policy && !policy.rights.allowPricing;
+  const lockDays = !!policy && !policy.rights.allowExpiry;
+  const noAllPhotos = !!policy && !policy.rights.allowAllPhotos;
+  const editablePricing = [
+    "maxSelection",
+    ...(lockPrice ? [] : ["extraPhotoPrice", "extensionPrice"]),
+    ...(lockDays ? [] : ["expiryDays", "extensionDays"]),
+    ...(lockPrice || noAllPhotos ? [] : ["allPhotosPrice"]),
+  ];
+
   const d = daysLeft(g.expiresAt);
   const unlocked = photos.filter((p) => p.unlocked).length;
   const included = photos.filter((p) => p.unlocked && !p.paid).length;
@@ -164,20 +175,37 @@ export default function AdminGalleryPage() {
           </Section>
 
           <Section title="Forfait & tarifs" hint="Laissez vide pour utiliser vos valeurs par défaut (Compte).">
+            {(lockPrice || lockDays || noAllPhotos) && (
+              <p className="help border-l-2 border-terracotta pl-3">Certains réglages sont fixés par Track.Art pour toutes les galeries.</p>
+            )}
             <Field label="Photos incluses dans le forfait" hint="Nombre libre. Au-delà, chaque photo est facturée au prix ci-dessous.">
               <input type="number" min={1} className="input num" value={form.maxSelection ?? 1} onChange={num("maxSelection")} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Prix photo suppl. (€)" hint={`Défaut : ${g.effective.extraPhotoPrice} €`}><input type="number" min={0} className="input num" value={form.extraPhotoPrice ?? ""} onChange={num("extraPhotoPrice")} placeholder={String(g.effective.extraPhotoPrice)} /></Field>
-              <Field label="Validité (jours)" hint="À partir de la 1re ouverture."><input type="number" min={1} className="input num" value={form.expiryDays ?? 30} onChange={num("expiryDays")} /></Field>
-              <Field label="Prolongation (€)" hint={`Défaut : ${g.effective.extensionPrice} €`}><input type="number" min={0} className="input num" value={form.extensionPrice ?? ""} onChange={num("extensionPrice")} placeholder={String(g.effective.extensionPrice)} /></Field>
-              <Field label="Durée prolongation (j)" hint={`Défaut : ${g.effective.extensionDays} j`}><input type="number" min={1} className="input num" value={form.extensionDays ?? ""} onChange={num("extensionDays")} placeholder={String(g.effective.extensionDays)} /></Field>
+              <Field label="Prix photo suppl. (€)" badge={lockPrice && <LockedBadge />} hint={lockPrice ? `Imposé : ${g.effective.extraPhotoPrice} €` : `Défaut : ${g.effective.extraPhotoPrice} €${policy ? ` · ${policy.rights.priceMin}–${policy.rights.priceMax} €` : ""}`}>
+                <input type="number" min={policy?.rights.priceMin ?? 0} max={policy?.rights.priceMax} className="input num" disabled={lockPrice} value={lockPrice ? g.effective.extraPhotoPrice : form.extraPhotoPrice ?? ""} onChange={num("extraPhotoPrice")} placeholder={String(g.effective.extraPhotoPrice)} />
+              </Field>
+              <Field label="Validité (jours)" badge={lockDays && <LockedBadge />} hint={lockDays ? "Durée imposée par la plateforme." : policy ? `À partir de la 1re ouverture · ${policy.rights.maxExpiryDays} j max.` : "À partir de la 1re ouverture."}>
+                <input type="number" min={1} max={policy?.rights.maxExpiryDays} className="input num" disabled={lockDays} value={form.expiryDays ?? 30} onChange={num("expiryDays")} />
+              </Field>
+              <Field label="Prolongation (€)" badge={lockPrice && <LockedBadge />} hint={`${lockPrice ? "Imposé" : "Défaut"} : ${g.effective.extensionPrice} €`}>
+                <input type="number" min={policy?.rights.priceMin ?? 0} max={policy?.rights.priceMax} className="input num" disabled={lockPrice} value={lockPrice ? g.effective.extensionPrice : form.extensionPrice ?? ""} onChange={num("extensionPrice")} placeholder={String(g.effective.extensionPrice)} />
+              </Field>
+              <Field label="Durée prolongation (j)" badge={lockDays && <LockedBadge />} hint={`${lockDays ? "Imposé" : "Défaut"} : ${g.effective.extensionDays} j`}>
+                <input type="number" min={1} className="input num" disabled={lockDays} value={lockDays ? g.effective.extensionDays : form.extensionDays ?? ""} onChange={num("extensionDays")} placeholder={String(g.effective.extensionDays)} />
+              </Field>
             </div>
-            <Field label="Prix « toutes les photos » (€)" hint={`Forfait pour débloquer d’un coup toutes les photos restantes. Vide = non proposé${g.effective.allPhotosPrice ? ` (défaut : ${g.effective.allPhotosPrice} €)` : ''}.`}>
-              <input type="number" min={0} className="input num" value={form.allPhotosPrice ?? ""} onChange={num("allPhotosPrice")} placeholder={g.effective.allPhotosPrice ? String(g.effective.allPhotosPrice) : "Non proposé"} />
+            <Field
+              label="Prix « toutes les photos » (€)"
+              badge={(lockPrice || noAllPhotos) && <LockedBadge>{noAllPhotos ? "Désactivé par Track.Art" : "Fixé par Track.Art"}</LockedBadge>}
+              hint={noAllPhotos ? "L’achat groupé n’est pas proposé sur la plateforme." : `Forfait pour débloquer d’un coup toutes les photos restantes. Vide = non proposé${g.effective.allPhotosPrice ? ` (défaut : ${g.effective.allPhotosPrice} €)` : ""}.`}
+            >
+              <input type="number" min={policy?.rights.priceMin ?? 0} max={policy?.rights.priceMax} className="input num" disabled={lockPrice || noAllPhotos}
+                value={lockPrice || noAllPhotos ? g.effective.allPhotosPrice ?? "" : form.allPhotosPrice ?? ""} onChange={num("allPhotosPrice")}
+                placeholder={g.effective.allPhotosPrice ? String(g.effective.allPhotosPrice) : "Non proposé"} />
             </Field>
             <p className="help">Commission Track.Art en vigueur : <span className="num">{g.effective.commissionRate} %</span> sur chaque paiement client. Le prix d’une photo peut aussi être modifié individuellement dans la grille.</p>
-            <button onClick={() => save(["maxSelection", "extraPhotoPrice", "expiryDays", "extensionPrice", "extensionDays", "allPhotosPrice"])} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
+            <button onClick={() => save(editablePricing)} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
           </Section>
 
           <Section title="Accès & protection">

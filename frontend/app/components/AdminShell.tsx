@@ -44,6 +44,9 @@ export default function AdminShell({ children, title, actions }: { children: Rea
             )}
           </nav>
           <div className="ml-auto flex items-center gap-5 min-w-0">
+            <Link href="/" className="tap label text-ink-soft hover:text-terracotta transition-colors shrink-0 hidden sm:inline-flex items-center gap-1.5" title="Retour au site public">
+              <span aria-hidden>←</span> Site
+            </Link>
             {me && <span className="meta hidden xl:inline truncate max-w-[220px]">{me.studioName ?? me.name ?? me.email}</span>}
             <button onClick={logout} className="tap label text-muted hover:text-terracotta transition-colors shrink-0">Déconnexion</button>
           </div>
@@ -52,6 +55,10 @@ export default function AdminShell({ children, title, actions }: { children: Rea
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={`label whitespace-nowrap ${pathname?.startsWith(n.href) ? "text-terracotta" : "text-ink-soft"}`}>{n.label}</Link>
           ))}
+          {me?.role === "SUPERADMIN" && (
+            <Link href="/admin/plateforme" className={`label whitespace-nowrap ${pathname?.startsWith("/admin/plateforme") ? "text-terracotta" : "text-ink-soft"}`}>Plateforme</Link>
+          )}
+          <Link href="/" className="label whitespace-nowrap text-muted">← Site</Link>
         </nav>
       </header>
       {(title || actions) && (
