@@ -65,12 +65,109 @@ export class UsersService {
       if (f === 'defaultExtensionPrice') this.settings.assertPrice(policy, 'Prix de prolongation', n);
       if (f === 'defaultExtensionDays') this.settings.assertDays(policy, 'Durée de prolongation', n, false);
       if (f === 'defaultExpiryDays') this.settings.assertDays(policy, 'Durée de validité', n, true);
-      if (f === 'defaultIncluded' && n < 1) throw new BadRequestException('Au moins 1 photo incluse');
+      // defaultIncluded = 0 : aucune photo incluse, tout est vendu à l'unité
       data[f] = n;
     }
 
     await this.prisma.user.update({ where: { id: userId }, data });
     return this.me(userId);
+  }
+
+
+  /**
+   * Tableau de bord plateforme (super-admin) : agrégats globaux, séries des
+   * 30 derniers jours et fiche détaillée par photographe.
+   */
+  async platformStats() {
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - 29);
+
+    const [users, galleries, photos, payments] = await Promise.all([
+      this.prisma.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, name: true, studioName: true, role: true, createdAt: true },
+      }),
+      this.prisma.gallery.findMany({
+        select: { id: true, userId: true, createdAt: true, isArchived: true, expiresAt: true, firstOpenedAt: true, _count: { select: { photos: true } } },
+      }),
+      this.prisma.photo.count(),
+      this.prisma.payment.findMany({
+        where: { status: 'completed' },
+        select: { userId: true, amount: true, platformFee: true, netAmount: true, type: true, createdAt: true },
+      }),
+    ]);
+
+    // ─── Par photographe ───────────────────────────────────────────────────
+    const rows = users.map((u) => {
+      const gs = galleries.filter((g) => g.userId === u.id);
+      const ps = payments.filter((p) => p.userId === u.id);
+      const dates = [...gs.map((g) => g.createdAt), ...ps.map((p) => p.createdAt)];
+      return {
+        ...u,
+        galleries: gs.length,
+        activeGalleries: gs.filter((g) => !g.isArchived && (!g.expiresAt || g.expiresAt > new Date())).length,
+        openedGalleries: gs.filter((g) => g.firstOpenedAt).length,
+        photos: gs.reduce((n, g) => n + g._count.photos, 0),
+        sales: ps.length,
+        gross: ps.reduce((n, p) => n + p.amount, 0),
+        fees: ps.reduce((n, p) => n + p.platformFee, 0),
+        net: ps.reduce((n, p) => n + p.netAmount, 0),
+        lastActivity: dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))).toISOString() : null,
+      };
+    });
+
+    // ─── Séries jour par jour (30 jours glissants) ─────────────────────────
+    const days: { date: string; signups: number; galleries: number; sales: number; gross: number; fees: number }[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(since);
+      d.setDate(since.getDate() + i);
+      const next = new Date(d);
+      next.setDate(d.getDate() + 1);
+      const inDay = (x: Date) => x >= d && x < next;
+      const dayPayments = payments.filter((p) => inDay(p.createdAt));
+      days.push({
+        date: d.toISOString().slice(0, 10),
+        signups: users.filter((u) => inDay(u.createdAt)).length,
+        galleries: galleries.filter((g) => inDay(g.createdAt)).length,
+        sales: dayPayments.length,
+        gross: dayPayments.reduce((n, p) => n + p.amount, 0),
+        fees: dayPayments.reduce((n, p) => n + p.platformFee, 0),
+      });
+    }
+
+    // ─── Agrégats ──────────────────────────────────────────────────────────
+    const gross = payments.reduce((n, p) => n + p.amount, 0);
+    const fees = payments.reduce((n, p) => n + p.platformFee, 0);
+    const photographers = users.filter((u) => u.role !== 'SUPERADMIN').length;
+    const earning = rows.filter((r) => r.sales > 0).length;
+    const byType: Record<string, { count: number; gross: number }> = {};
+    for (const p of payments) {
+      const k = p.type || 'autre';
+      byType[k] = { count: (byType[k]?.count ?? 0) + 1, gross: (byType[k]?.gross ?? 0) + p.amount };
+    }
+
+    return {
+      totals: {
+        users: users.length,
+        photographers,
+        galleries: galleries.length,
+        activeGalleries: galleries.filter((g) => !g.isArchived && (!g.expiresAt || g.expiresAt > new Date())).length,
+        openedGalleries: galleries.filter((g) => g.firstOpenedAt).length,
+        photos,
+        sales: payments.length,
+        gross,
+        fees,
+        net: payments.reduce((n, p) => n + p.netAmount, 0),
+        averageBasket: payments.length ? gross / payments.length : 0,
+        conversion: users.length ? (earning / users.length) * 100 : 0,
+        openRate: galleries.length ? (galleries.filter((g) => g.firstOpenedAt).length / galleries.length) * 100 : 0,
+      },
+      byType,
+      days,
+      users: rows,
+      generatedAt: new Date().toISOString(),
+    };
   }
 
   /** Vue plateforme (super-admin) */

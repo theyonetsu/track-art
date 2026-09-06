@@ -189,7 +189,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
               ? <><span className="num">{includedCount}</span> / <span className="num">{includedRemaining}</span> {t.includedShort}{extraPhotos.length > 0 && <> · {t.extra(extraPhotos.length)}</>}</>
               : includedRemaining > 0
                 ? <>{t.included(includedRemaining)}</>
-                : <>{t.packUsed(gallery.extraPhotoPrice)}</>}
+                : <>{gallery.maxSelection === 0 ? t.aLaCarte(gallery.extraPhotoPrice) : t.packUsed(gallery.extraPhotoPrice)}</>}
           </p>
           <div className="flex items-center gap-4">
             {days !== null && <span className="label text-terracotta">{t.expiresIn(days)}</span>}
@@ -283,7 +283,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           <div className="max-w-7xl mx-auto px-5 h-20 flex items-center justify-between gap-4">
             <div>
               <p className="text-base font-medium"><span className="num">{selectedCount}</span> <span className="text-muted font-light">{t.photo(selectedCount)}</span></p>
-              <p className="meta">{t.includedLine(includedCount)}{extraPhotos.length > 0 && <> · {t.extraLine(extraPhotos.length)} = <span className="num">{total} €</span></>}</p>
+              <p className="meta">{includedCount > 0 && <>{t.includedLine(includedCount)}{extraPhotos.length > 0 && ' · '}</>}{extraPhotos.length > 0 && <>{t.extraLine(extraPhotos.length)} = <span className="num">{total} €</span></>}</p>
             </div>
             <div className="flex items-center gap-4">
               <button onClick={() => setSelected(new Set())} className="label text-muted hover:text-terracotta transition-colors">{t.clear}</button>
@@ -299,7 +299,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             {selectedList.map((p) => <div key={p.id} className="shrink-0 w-16 h-16 overflow-hidden border border-line"><ProtectedImage src={p.watermarkUrl} className="w-full h-full" /></div>)}
           </div>
           <div className="border border-line p-4 mb-6 flex flex-col gap-2 text-sm">
-            <div className="flex justify-between text-ink-soft"><span>{t.includedLine(includedCount)}</span><span className="num">0 €</span></div>
+            {includedCount > 0 && <div className="flex justify-between text-ink-soft"><span>{t.includedLine(includedCount)}</span><span className="num">0 €</span></div>}
             {extraPhotos.length > 0 && <div className="flex justify-between text-ink-soft"><span>{t.extraLine(extraPhotos.length)}</span><span className="num">{total} €</span></div>}
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.total}</span><span className="num">{total} €</span></div>
             {total === 0 && <p className="help">{t.includedNote}</p>}

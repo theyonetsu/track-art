@@ -3,7 +3,7 @@ export type Lang = 'fr' | 'en' | 'es';
 const dict = {
   fr: {
     by: 'par', yourSelection: 'Votre sélection de photos', included: (n: number) => `${n} photo${n > 1 ? 's' : ''} incluse${n > 1 ? 's' : ''} dans votre forfait`,
-    includedShort: 'incluses', extra: (n: number) => `${n} supplémentaire${n > 1 ? 's' : ''}`, packUsed: (p: number) => `Forfait utilisé — photos supplémentaires à ${p} € l’unité`,
+    includedShort: 'incluses', extra: (n: number) => `${n} supplémentaire${n > 1 ? 's' : ''}`, packUsed: (p: number) => `Forfait utilisé — photos supplémentaires à ${p} € l’unité`, aLaCarte: (p: number) => `Chaque photo est à ${p} € — choisissez celles que vous souhaitez`,
     expiresIn: (d: number) => (d > 0 ? `Expire dans ${d} jour${d > 1 ? 's' : ''}` : 'Expire aujourd’hui'), extend: 'Prolonger', yourPhotos: 'Vos photos', hd: 'HD', confirmed: 'confirmées',
     hdByPhotographer: 'Les fichiers HD vous seront remis par votre photographe.', downloadAll: (n: number) => `Tout télécharger (${n})`, downloading: (i: number, n: number) => `Téléchargement ${i}/${n}…`, downloadHint: 'Fichiers originaux, qualité d’origine. Autorisez les téléchargements multiples si votre navigateur le demande.', download: 'Télécharger', poweredBy: 'Galerie privée propulsée par', backTop: 'Haut de page',
     choose: 'Choisissez vos photos', selectAll: 'Tout sélectionner', unlockAll: (n: number, p: number) => `Débloquer les ${n} photos · ${p} €`, soon: 'Les photos arrivent bientôt.', allUnlocked: 'Toutes les photos sont déverrouillées.',
@@ -19,7 +19,7 @@ const dict = {
   },
   en: {
     by: 'by', yourSelection: 'Your photo selection', included: (n: number) => `${n} photo${n > 1 ? 's' : ''} included in your package`,
-    includedShort: 'included', extra: (n: number) => `${n} extra${n > 1 ? 's' : ''}`, packUsed: (p: number) => `Package used — extra photos at €${p} each`,
+    includedShort: 'included', extra: (n: number) => `${n} extra${n > 1 ? 's' : ''}`, packUsed: (p: number) => `Package used — extra photos at €${p} each`, aLaCarte: (p: number) => `Each photo is €${p} — pick the ones you want`,
     expiresIn: (d: number) => (d > 0 ? `Expires in ${d} day${d > 1 ? 's' : ''}` : 'Expires today'), extend: 'Extend', yourPhotos: 'Your photos', hd: 'HD', confirmed: 'confirmed',
     hdByPhotographer: 'Your photographer will deliver the HD files.', downloadAll: (n: number) => `Download all (${n})`, downloading: (i: number, n: number) => `Downloading ${i}/${n}…`, downloadHint: 'Original files, full quality. Allow multiple downloads if your browser asks.', download: 'Download', poweredBy: 'Private gallery powered by', backTop: 'Back to top',
     choose: 'Choose your photos', selectAll: 'Select all', unlockAll: (n: number, p: number) => `Unlock all ${n} photos · €${p}`, soon: 'Photos coming soon.', allUnlocked: 'All photos are unlocked.',
@@ -35,7 +35,7 @@ const dict = {
   },
   es: {
     by: 'por', yourSelection: 'Tu selección de fotos', included: (n: number) => `${n} foto${n > 1 ? 's' : ''} incluida${n > 1 ? 's' : ''} en tu paquete`,
-    includedShort: 'incluidas', extra: (n: number) => `${n} adicional${n > 1 ? 'es' : ''}`, packUsed: (p: number) => `Paquete agotado — fotos adicionales a ${p} € cada una`,
+    includedShort: 'incluidas', extra: (n: number) => `${n} adicional${n > 1 ? 'es' : ''}`, packUsed: (p: number) => `Paquete agotado — fotos adicionales a ${p} € cada una`, aLaCarte: (p: number) => `Cada foto cuesta ${p} € — elige las que quieras`,
     expiresIn: (d: number) => (d > 0 ? `Caduca en ${d} día${d > 1 ? 's' : ''}` : 'Caduca hoy'), extend: 'Prolongar', yourPhotos: 'Tus fotos', hd: 'HD', confirmed: 'confirmadas',
     hdByPhotographer: 'Tu fotógrafo te entregará los archivos HD.', downloadAll: (n: number) => `Descargar todo (${n})`, downloading: (i: number, n: number) => `Descargando ${i}/${n}…`, downloadHint: 'Archivos originales, calidad original. Permite las descargas múltiples si tu navegador lo pide.', download: 'Descargar', poweredBy: 'Galería privada con', backTop: 'Volver arriba',
     choose: 'Elige tus fotos', selectAll: 'Seleccionar todo', unlockAll: (n: number, p: number) => `Desbloquear las ${n} fotos · ${p} €`, soon: 'Las fotos llegan pronto.', allUnlocked: 'Todas las fotos están desbloqueadas.',

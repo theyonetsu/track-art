@@ -17,4 +17,9 @@ export class UsersController {
   @UseGuards(SuperAdminGuard)
   @Get('admin/users')
   listAll() { return this.users.listAll(); }
+
+  /** Tableau de bord plateforme : agrégats, séries 30 jours, détail par photographe */
+  @UseGuards(SuperAdminGuard)
+  @Get('admin/stats')
+  stats() { return this.users.platformStats(); }
 }

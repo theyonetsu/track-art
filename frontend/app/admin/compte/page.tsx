@@ -89,8 +89,8 @@ export default function ComptePage() {
             <p className="help border-l-2 border-terracotta pl-3">Certains réglages sont fixés par Track.Art et ne sont pas modifiables ici.</p>
           )}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Photos incluses" hint="Nombre libre, sans limite.">
-              <input type="number" min={1} className="input num" value={form.defaultIncluded ?? 30} onChange={set("defaultIncluded")} />
+            <Field label="Photos incluses" hint={form.defaultIncluded === 0 ? "0 = vente à l’unité : chaque photo est payante." : "Nombre libre. 0 pour vendre uniquement à l’unité."}>
+              <input type="number" min={0} className="input num" value={form.defaultIncluded ?? 30} onChange={set("defaultIncluded")} />
             </Field>
             <Field label="Prix photo supplémentaire (€)" badge={lockPrice && <LockedBadge />} hint={priceHint}>
               <input type="number" min={0} className="input num" disabled={lockPrice} value={lockPrice ? policy!.defaults.extraPhotoPrice : form.defaultExtraPhotoPrice ?? 2} onChange={set("defaultExtraPhotoPrice")} />

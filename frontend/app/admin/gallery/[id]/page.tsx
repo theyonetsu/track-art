@@ -211,8 +211,8 @@ export default function AdminGalleryPage() {
             {(lockPrice || lockDays || noAllPhotos) && (
               <p className="help border-l-2 border-terracotta pl-3">Certains réglages sont fixés par Track.Art pour toutes les galeries.</p>
             )}
-            <Field label="Photos incluses dans le forfait" hint="Nombre libre. Au-delà, chaque photo est facturée au prix ci-dessous.">
-              <input type="number" min={1} className="input num" value={form.maxSelection ?? 1} onChange={num("maxSelection")} />
+            <Field label="Photos incluses dans le forfait" hint={form.maxSelection === 0 ? "0 = vente à l’unité : le client paie chaque photo, aucune n’est offerte." : "Nombre libre. Au-delà, chaque photo est facturée au prix ci-dessous. Mettez 0 pour vendre uniquement à l’unité."}>
+              <input type="number" min={0} className="input num" value={form.maxSelection ?? 1} onChange={num("maxSelection")} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Prix photo suppl. (€)" badge={lockPrice && <LockedBadge />} hint={lockPrice ? `Imposé : ${g.effective.extraPhotoPrice} €` : `Défaut : ${g.effective.extraPhotoPrice} €${policy ? ` · ${policy.rights.priceMin}–${policy.rights.priceMax} €` : ""}`}>

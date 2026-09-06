@@ -87,7 +87,7 @@ export class GalleriesService {
     if (typeof data.extensionDays === 'number') this.settings.assertDays(policy, 'Durée de prolongation', data.extensionDays, false);
     if (typeof data.expiryDays === 'number') this.settings.assertDays(policy, 'Durée de validité', data.expiryDays, true);
 
-    if ('maxSelection' in data && (data.maxSelection as number) < 1) throw new BadRequestException('Au moins 1 photo incluse');
+    if ('maxSelection' in data && (data.maxSelection as number) < 0) throw new BadRequestException('Nombre de photos incluses invalide'); // 0 = vente à l'unité
     if (data.clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(data.clientEmail))) throw new BadRequestException('Email client invalide');
     return data;
   }
@@ -267,12 +267,18 @@ export class GalleriesService {
     if (!g0) throw new NotFoundException('Galerie introuvable');
     const g = await this.assertPublicAccess(g0.id, token);
 
-    const photos = await this.prisma.photo.findMany({ where: { id: { in: photoIds }, galleryId: g.id, unlocked: false }, select: { id: true } });
+    const photos = await this.prisma.photo.findMany({ where: { id: { in: photoIds }, galleryId: g.id, unlocked: false }, select: { id: true, price: true } });
     if (!photos.length) throw new BadRequestException('Aucune photo valide à confirmer');
 
     const { includedRemaining } = await this.getQuota(g.id, g.maxSelection);
-    if (photos.length > includedRemaining) {
-      throw new BadRequestException(`Votre forfait ne permet plus que ${includedRemaining} photo(s) incluse(s). Les photos supplémentaires sont payantes.`);
+    // Au-delà du forfait, seules les photos à 0 € peuvent être confirmées gratuitement
+    const billable = photos.slice(includedRemaining).filter((p) => p.price > 0);
+    if (billable.length) {
+      throw new BadRequestException(
+        includedRemaining > 0
+          ? `Votre forfait ne permet plus que ${includedRemaining} photo(s) incluse(s). Les photos supplémentaires sont payantes.`
+          : 'Chaque photo de cette galerie est payante.',
+      );
     }
     await this.prisma.photo.updateMany({ where: { id: { in: photos.map((p) => p.id) } }, data: { unlocked: true, paid: false } });
     return { success: true, photoIds: photos.map((p) => p.id) };

@@ -86,7 +86,6 @@ export class SettingsService {
     }
 
     const next = { ...s, ...clean } as typeof s;
-    if (next.includedPhotos < 1) throw new BadRequestException('Au moins 1 photo incluse');
     if (next.expiryDays < 1 || next.extensionDays < 1) throw new BadRequestException('Les durées doivent valoir au moins 1 jour');
     if (next.priceMin > next.priceMax) throw new BadRequestException('Le prix minimum doit être inférieur au prix maximum');
     if (next.expiryDays > next.maxExpiryDays) throw new BadRequestException('La durée par défaut dépasse la durée maximale autorisée');
