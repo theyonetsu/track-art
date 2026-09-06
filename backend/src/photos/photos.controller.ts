@@ -16,7 +16,7 @@ export class PhotosController {
 
   @UseGuards(JwtAuthGuard)
   @Post('gallery/:galleryId/upload')
-  @UseInterceptors(FilesInterceptor('photos', 100, {
+  @UseInterceptors(FilesInterceptor('photos', 20, {
     storage: memoryStorage(),
     limits: { fileSize: MAX_FILE_SIZE },
     fileFilter: (_req, file, cb) => {

@@ -40,7 +40,7 @@ const sections: { title: string; items: { q: string; a: string }[] }[] = [
     title: "Votre marque",
     items: [
       { q: "Que voient mes clients de ma marque ?", a: "Le nom de votre studio sous le titre de chaque galerie et dans les emails, votre message personnel en haut de la galerie, et votre filigrane (texte au choix) sur tous les aperçus." },
-      { q: "Quels formats de photos puis-je envoyer ?", a: "JPEG, PNG, WEBP, HEIC et TIFF jusqu'à 80 Mo par fichier, 100 fichiers par envoi. Miniatures et versions filigranées sont générées automatiquement à l'arrivée, l'orientation est corrigée." },
+      { q: "Quels formats de photos puis-je envoyer ?", a: "JPEG, PNG, WEBP, HEIC et TIFF jusqu'à 80 Mo par fichier. Le nombre de photos par galerie n'est pas limité : déposez-en 40 ou 800 d'un coup, l'envoi est découpé automatiquement et la grille se remplit au fur et à mesure. Miniatures et versions filigranées sont générées à l'arrivée, l'orientation est corrigée." },
       { q: "Mes clients ne parlent pas français ?", a: "Chaque galerie a sa langue : français, anglais ou espagnol. Textes, boutons, dates et interface PayPal s’adaptent. Le client peut aussi tout télécharger d’un coup : les fichiers arrivent un par un, dans leur format et leur qualité d’origine." },
       { q: "Puis-je choisir la photo de couverture ?", a: "Oui. Par défaut c'est la première photo importée ; survolez n'importe quelle photo et cliquez sur l'icône de couverture pour la changer." },
     ],

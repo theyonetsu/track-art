@@ -63,23 +63,56 @@ export default function AdminGalleryPage() {
   }
 
   // ─── Upload ────────────────────────────────────────────────────────────────
-  function handleFiles(files: File[]) {
+  /** Un envoi = 20 fichiers max côté serveur : on découpe et on enchaîne les lots. */
+  const CHUNK = 20;
+
+  function uploadChunk(files: File[], onProgress: (fraction: number) => void) {
+    return new Promise<void>((resolve, reject) => {
+      const fd = new FormData();
+      files.forEach((f) => fd.append("photos", f));
+      const xhr = new XMLHttpRequest();
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { onProgress(1); resolve(); return; }
+        let m = "Erreur lors de l'envoi";
+        try { m = JSON.parse(xhr.responseText).message ?? m; } catch {}
+        reject(new Error(m));
+      };
+      xhr.onerror = () => reject(new Error("Erreur réseau pendant l'envoi"));
+      xhr.open("POST", `${API}/photos/gallery/${id}/upload`);
+      xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
+      xhr.send(fd);
+    });
+  }
+
+  async function handleFiles(files: File[]) {
     if (!files.length || uploading) return;
     const previews = files.map((f) => ({ localId: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name }));
     setPending(previews);
-    const fd = new FormData(); files.forEach((f) => fd.append("photos", f));
-    const xhr = new XMLHttpRequest();
-    xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => {
-      setUploading(false); setProgress(0); previews.forEach((p) => URL.revokeObjectURL(p.url)); setPending([]);
-      if (xhr.status >= 200 && xhr.status < 300) { load(); notify(`${files.length} photo${files.length > 1 ? "s" : ""} ajoutée${files.length > 1 ? "s" : ""}`); }
-      else { let m = "Erreur lors de l'upload"; try { m = JSON.parse(xhr.responseText).message ?? m; } catch {} notify(m, true); }
-    };
-    xhr.onerror = () => { setUploading(false); setPending([]); notify("Erreur réseau pendant l'upload", true); };
-    xhr.open("POST", `${API}/photos/gallery/${id}/upload`);
-    xhr.setRequestHeader("Authorization", `Bearer ${getToken()}`);
-    setUploading(true); xhr.send(fd);
+    setUploading(true);
+    setProgress(0);
+
+    const lots: File[][] = [];
+    for (let i = 0; i < files.length; i += CHUNK) lots.push(files.slice(i, i + CHUNK));
+
+    let done = 0;
+    try {
+      for (const lot of lots) {
+        await uploadChunk(lot, (f) => setProgress(Math.round(((done + f * lot.length) / files.length) * 100)));
+        done += lot.length;
+        setProgress(Math.round((done / files.length) * 100));
+        if (lots.length > 1) load(); // la grille se remplit lot par lot
+      }
+      notify(`${files.length} photo${files.length > 1 ? "s" : ""} ajoutée${files.length > 1 ? "s" : ""}`);
+    } catch (e) {
+      notify(done > 0 ? `${done} photo${done > 1 ? "s" : ""} ajoutée${done > 1 ? "s" : ""}, puis : ${e instanceof Error ? e.message : "erreur"}` : e instanceof Error ? e.message : "Erreur", true);
+    } finally {
+      setUploading(false); setProgress(0);
+      previews.forEach((p) => URL.revokeObjectURL(p.url)); setPending([]);
+      load();
+    }
   }
+
   const onDrop = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(false); handleFiles(Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"))); };
 
   // ─── Photos ────────────────────────────────────────────────────────────────
@@ -268,7 +301,7 @@ export default function AdminGalleryPage() {
                 <>
                   <svg className={`w-8 h-8 ${dragging ? "text-terracotta" : "text-muted"}`} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
                   <p className="font-serif text-2xl">{dragging ? "Déposez vos photos" : "Glissez-déposez vos photos ici"}</p>
-                  <p className="meta">ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC, TIFF · 80 Mo par fichier · 100 fichiers par envoi</p>
+                  <p className="meta">ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC, TIFF · 80 Mo par fichier · nombre de photos illimité</p>
                 </>
               )}
             </div>
