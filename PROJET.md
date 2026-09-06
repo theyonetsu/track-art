@@ -109,6 +109,24 @@ Chaque page a désormais une sortie explicite :
 - `/contact` : ancre `<a>` remplacée par `<Link>`
 Déjà en place et vérifiés : `/admin/login`, `/inscription`, `not-found`, « ← Galeries » sur le détail d'une galerie.
 
+## Audit de navigation du 6 septembre (clics réels dans le navigateur)
+
+Vérifié : les 13 routes répondent, les 74 liens internes des pages publiques pointent tous vers une page qui existe, les trois ancres de l'accueil résolvent, la navigation client (Next Link) fonctionne, le menu téléphone s'ouvre, bloque le défilement de fond et se referme.
+
+Corrigé :
+1. **Aucun retour visuel pendant un changement de page.** C'était la vraie cause de la sensation de « site qui rame » : un clic sur un lien ne produisait rien de visible tant que la page suivante n'était pas prête. Nouveau composant `NavProgress` (barre fine en haut, animée, filet de sécurité à 12 s) monté dans le layout racine.
+2. **`/admin` renvoyait 404.** Adresse pourtant naturelle à taper. Redirection vers `/admin/dashboard`, qui renvoie lui-même vers la connexion si aucun jeton.
+3. **`/admin/gallery/<id inexistant>` restait bloqué sur « Chargement… »** avec un toast qui disparaissait au bout de 3 s : impasse totale. Écran d'erreur avec « ← Retour aux galeries » et « Réessayer ».
+4. **Écrans galerie introuvable / expirée sans sortie** (pas d'en-tête, pas de bouton). Logo cliquable + bouton « Découvrir Track.Art ».
+5. **Onglet du navigateur générique sur les galeries clients** (« Track.Art — Galeries photo… »). `generateMetadata` : titre = nom de la galerie, description au nom du studio, Open Graph pour l'aperçu quand le lien est envoyé par messagerie, et surtout **`noindex, nofollow`** — une galerie privée n'a rien à faire dans Google.
+6. **Cibles tactiles sous 44 px** : logos d'en-tête et de pied de page, « Voir la galerie côté client », « Une question ? Écrivez-nous », « Déjà photographe ? », « Tout sélectionner », « Débloquer les N photos », croix de fermeture des tiroirs et de la visionneuse.
+7. **La barre d'action flottante recouvrait le nouveau pied de galerie** quand une sélection était en cours.
+8. Adresses `[EMAIL]` remplacées par `contact@trak.art` (CGV, confidentialité, contact, mentions légales).
+
+Contrôlé après correction à 375, 768 et 1440 px : aucun débordement horizontal, plus aucune cible sous 44 px sur les pages publiques et la galerie client, `tsc` propre des deux côtés.
+
+Reste à vérifier avec une session connectée : tableau de bord, ventes, compte, plateforme, détail de galerie (parcours d'upload et d'options).
+
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration `platform_defaults_and_policy` puis tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.

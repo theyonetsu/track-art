@@ -36,7 +36,7 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap items-center gap-6 pt-2">
             <Link href="/inscription" className="btn btn-accent">Créer ma galerie</Link>
-            <a href="#exemples" className="label link-underline hover:text-terracotta">Voir la galerie côté client</a>
+            <a href="#exemples" className="tap label link-underline hover:text-terracotta">Voir la galerie côté client</a>
           </div>
           <p className="text-sm text-muted">Sans abonnement · Paiement par carte ou PayPal · Stockage privé</p>
         </div>
@@ -133,7 +133,7 @@ export default function Home() {
             </p>
             <div className="flex flex-wrap gap-5 items-center">
               <Link href="/inscription" className="btn btn-accent">Créer mon compte</Link>
-              <Link href="/contact" className="label link-underline hover:text-terracotta">Une question ? Écrivez-nous</Link>
+              <Link href="/contact" className="tap label link-underline hover:text-terracotta">Une question ? Écrivez-nous</Link>
             </div>
           </div>
         </Reveal>

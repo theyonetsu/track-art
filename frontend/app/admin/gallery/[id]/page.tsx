@@ -42,12 +42,14 @@ export default function AdminGalleryPage() {
 
   const notify = (m: string, e = false) => setToast({ m, e });
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     const [gal, ph] = await Promise.all([api<Gallery>(`/galleries/manage/${id}`), api<Photo[]>(`/photos/gallery/${id}/admin`)]);
     setG(gal); setPhotos(ph);
     setForm({ ...gal, eventDate: gal.eventDate ? gal.eventDate.slice(0, 10) : "", password: "" });
   }, [id]);
-  useEffect(() => { load().catch((e) => notify(e.message, true)); }, [load]);
+  useEffect(() => { load().catch((e) => { setLoadError(e instanceof Error ? e.message : "Galerie introuvable"); }); }, [load]);
 
   const setF = (k: string, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
   const num = (k: string) => (e: ChangeEvent<HTMLInputElement>) => setF(k, e.target.value === "" ? null : Number(e.target.value));
@@ -143,7 +145,19 @@ export default function AdminGalleryPage() {
   }
   function copyLink() { if (!g) return; navigator.clipboard.writeText(`${window.location.origin}/g/${g.slug}`); setCopied(true); setTimeout(() => setCopied(false), 1800); }
 
-  if (!g) return <AdminShell><p className="meta">Chargement…</p></AdminShell>;
+  if (loadError) return (
+    <AdminShell title="Galerie introuvable">
+      <div className="card p-8 flex flex-col items-start gap-4 max-w-lg">
+        <p className="text-ink-soft">{loadError}</p>
+        <p className="help">Elle a peut-être été supprimée, ou ce lien ne correspond à aucune de vos galeries.</p>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/admin/dashboard" className="btn btn-primary">← Retour aux galeries</Link>
+          <button onClick={() => { setLoadError(null); load().catch((e) => setLoadError(e instanceof Error ? e.message : "Galerie introuvable")); }} className="btn btn-outline">Réessayer</button>
+        </div>
+      </div>
+    </AdminShell>
+  );
+  if (!g) return <AdminShell title="Galerie"><p className="meta">Chargement…</p></AdminShell>;
 
   const lockPrice = !!policy && !policy.rights.allowPricing;
   const lockDays = !!policy && !policy.rights.allowExpiry;

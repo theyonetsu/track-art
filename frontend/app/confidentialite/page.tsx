@@ -10,7 +10,7 @@ export default function Page() {
       <h2>Combien de temps</h2>
       <p>Une galerie et toutes ses photos (originaux, aperçus, versions filigranées) sont supprimées automatiquement 30 jours après la première ouverture du lien, sauf prolongation achetée. Les données de compte sont conservées tant que le compte existe.</p>
       <h2>Vos droits</h2>
-      <p>Vous pouvez demander l'accès, la rectification ou la suppression de vos données à [EMAIL]. Responsable du traitement : [RAISON SOCIALE], [ADRESSE].</p>
+      <p>Vous pouvez demander l'accès, la rectification ou la suppression de vos données à contact@trak.art. Responsable du traitement : [RAISON SOCIALE], [ADRESSE].</p>
       <h2>Cookies</h2>
       <p>Track.Art n'utilise qu'un jeton de session technique pour maintenir la connexion des photographes. Aucun cookie publicitaire, aucun traceur tiers.</p>
     </LegalPage>

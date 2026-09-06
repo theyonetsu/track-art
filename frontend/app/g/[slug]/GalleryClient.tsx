@@ -249,8 +249,8 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="font-serif text-2xl">{t.choose} <span className="text-muted text-lg num">({selectablePhotos.length})</span></h2>
               <div className="flex flex-wrap items-center gap-3">
-                <button onClick={() => setSelected(new Set(selectablePhotos.map((p) => p.id)))} className="label text-muted hover:text-terracotta transition-colors">{t.selectAll}</button>
-                {canBuyAll && <button onClick={() => setDrawer('all')} className="btn btn-accent !min-h-0 !py-2.5">{t.unlockAll(selectablePhotos.length, gallery.allPhotosPrice!)}</button>}
+                <button onClick={() => setSelected(new Set(selectablePhotos.map((p) => p.id)))} className="tap label text-muted hover:text-terracotta transition-colors">{t.selectAll}</button>
+                {canBuyAll && <button onClick={() => setDrawer('all')} className="btn btn-accent !py-2.5">{t.unlockAll(selectablePhotos.length, gallery.allPhotosPrice!)}</button>}
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
@@ -378,7 +378,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
               <span className="absolute top-5 left-1/2 -translate-x-1/2 label text-sand/60 num">{lightboxIndex + 1} / {lightboxList.length}</span>
             </>
           )}
-          <button className="absolute top-4 right-4 text-sand/70 hover:text-sand text-3xl leading-none" onClick={() => setLightbox(null)} aria-label={t.close}>×</button>
+          <button className="absolute top-3 right-3 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand text-3xl leading-none" onClick={() => setLightbox(null)} aria-label={t.close}>×</button>
           <div onClick={(e) => e.stopPropagation()} className="h-[82vh] w-[86vw] md:w-[80vw]"><ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-full w-full" /></div>
           {!lightbox.unlocked && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
@@ -389,7 +389,8 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
       )}
 
       {/* Pied de galerie : retour en haut + retour vers Track.Art */}
-      <footer className="border-t border-line mt-16">
+      {/* La barre d'action flottante ne doit pas recouvrir le pied de page */}
+      <footer className={`border-t border-line mt-16 ${selectedCount > 0 && !drawer ? 'pb-24' : ''}`}>
         <div className="max-w-7xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="tap label text-muted hover:text-terracotta transition-colors inline-flex items-center gap-2">
             <span aria-hidden>↑</span> {t.backTop}
@@ -442,7 +443,7 @@ function Drawer({ title, onClose, children, closeLabel = 'Fermer' }: { title: st
       <div className="relative bg-sand border-t border-line w-full max-h-[85vh] overflow-y-auto slide-up" style={{ boxShadow: '0 -24px 60px -20px rgba(34,27,24,0.5)' }}>
         <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-0.5 bg-line rounded-full" /></div>
         <div className="px-5 pb-8 pt-4 max-w-lg mx-auto w-full">
-          <div className="flex items-center justify-between mb-6"><h2 className="font-serif text-2xl">{title}</h2><button onClick={onClose} className="text-muted hover:text-ink text-2xl leading-none transition-colors" aria-label={closeLabel}>×</button></div>
+          <div className="flex items-center justify-between mb-6"><h2 className="font-serif text-2xl">{title}</h2><button onClick={onClose} className="w-11 h-11 -mr-2 flex items-center justify-center text-muted hover:text-ink text-2xl leading-none transition-colors" aria-label={closeLabel}>×</button></div>
           {children}
         </div>
       </div>

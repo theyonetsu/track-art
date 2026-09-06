@@ -21,7 +21,7 @@ export default function Page() {
       <h2>7. Droit de rétractation</h2>
       <p>Conformément à l’article L221-28 du Code de la consommation, le droit de rétractation ne s’applique pas aux contenus numériques fournis immédiatement après paiement avec l’accord exprès du Client, ce que le Client accepte en validant son paiement.</p>
       <h2>8. Responsabilité</h2>
-      <p>La Plateforme s’engage à des moyens raisonnables de disponibilité et de sécurité. Elle ne saurait être tenue responsable des contenus publiés par les Photographes ni des litiges entre Photographes et Clients, pour lesquels elle peut néanmoins être contactée à [EMAIL].</p>
+      <p>La Plateforme s’engage à des moyens raisonnables de disponibilité et de sécurité. Elle ne saurait être tenue responsable des contenus publiés par les Photographes ni des litiges entre Photographes et Clients, pour lesquels elle peut néanmoins être contactée à contact@trak.art.</p>
       <h2>9. Données personnelles</h2>
       <p>Voir notre <a href="/confidentialite" className="link-underline text-ink">politique de confidentialité</a>.</p>
       <h2>10. Droit applicable</h2>
