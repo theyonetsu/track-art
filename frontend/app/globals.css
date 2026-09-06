@@ -161,17 +161,20 @@ body {
 .float { animation: float 6s ease-in-out infinite; }
 
 /* Apparition au défilement (composant Reveal) */
-.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.9s var(--ease-out-expo), transform 0.9s var(--ease-out-expo); }
-.reveal.is-visible { opacity: 1; transform: none; }
-.reveal-stagger > * { opacity: 0; transform: translateY(18px); transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo); }
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo); will-change: opacity, transform; }
+.reveal.is-visible { opacity: 1; transform: none; will-change: auto; }
+.reveal-stagger > * { opacity: 0; transform: translateY(12px); transition: opacity 0.45s var(--ease-out-expo), transform 0.45s var(--ease-out-expo); }
 .reveal-stagger.is-visible > * { opacity: 1; transform: none; }
-.reveal-stagger.is-visible > :nth-child(2) { transition-delay: 0.1s; }
-.reveal-stagger.is-visible > :nth-child(3) { transition-delay: 0.2s; }
-.reveal-stagger.is-visible > :nth-child(4) { transition-delay: 0.3s; }
-.reveal-stagger.is-visible > :nth-child(5) { transition-delay: 0.4s; }
-.reveal-stagger.is-visible > :nth-child(6) { transition-delay: 0.5s; }
-.reveal-stagger.is-visible > :nth-child(7) { transition-delay: 0.6s; }
-.reveal-stagger.is-visible > :nth-child(8) { transition-delay: 0.7s; }
+.reveal-stagger.is-visible > :nth-child(2) { transition-delay: 0.05s; }
+.reveal-stagger.is-visible > :nth-child(3) { transition-delay: 0.1s; }
+.reveal-stagger.is-visible > :nth-child(4) { transition-delay: 0.15s; }
+.reveal-stagger.is-visible > :nth-child(5) { transition-delay: 0.2s; }
+.reveal-stagger.is-visible > :nth-child(6) { transition-delay: 0.25s; }
+.reveal-stagger.is-visible > :nth-child(7) { transition-delay: 0.3s; }
+.reveal-stagger.is-visible > :nth-child(8) { transition-delay: 0.3s; }
+
+/* Bloc déjà atteint avant l'hydratation : affichage direct, aucun fondu tardif */
+.reveal.is-instant, .reveal-stagger.is-instant > * { transition: none !important; transition-delay: 0s !important; }
 
 /* Cibles tactiles confortables sur téléphone (recommandation : 44 px) */
 @media (max-width: 767px) {
