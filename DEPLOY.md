@@ -20,12 +20,50 @@ git remote add origin https://github.com/<TON_USER>/track-art.git
 git push -u origin main
 ```
 
-## 2. PayPal (10 min)
-1. https://developer.paypal.com → Apps & Credentials → **Sandbox** → Create App → copier *Client ID* et *Secret*.
-2. Backend : `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE=sandbox`. Frontend : `PAYPAL_CLIENT_ID` (même valeur).
-3. Tester un achat avec un compte acheteur sandbox (onglet *Testing tools → Sandbox accounts*).
-4. Pour encaisser réellement : refaire la même chose dans l'onglet **Live** et passer `PAYPAL_MODE=live`.
-5. Optionnel : Webhooks → ajouter `https://api.trak.art/payments/webhook` (événement `PAYMENT.CAPTURE.COMPLETED`) → `PAYPAL_WEBHOOK_ID`.
+## 2. PayPal (15 min)
+
+### a. Créer l'application sandbox
+1. Aller sur **https://developer.paypal.com** → *Log in to Dashboard*. Un compte PayPal personnel suffit pour la sandbox ; **aucun compte Business n'est nécessaire tant qu'on ne passe pas en live**.
+2. Menu **Apps & Credentials**, interrupteur **Sandbox** en haut (pas *Live*).
+3. Une application `Default Application` existe déjà — la réutiliser, ou *Create App* (type **Merchant**), nom `Track.Art`.
+4. Copier le **Client ID** et, après avoir cliqué sur *Show*, le **Secret**.
+
+### b. Coller les clés (deux fichiers, la même valeur de Client ID)
+`backend/.env` :
+```
+PAYPAL_CLIENT_ID=AeA1QI...
+PAYPAL_CLIENT_SECRET=EO422d...
+PAYPAL_MODE=sandbox
+```
+`frontend/.env.local` :
+```
+PAYPAL_CLIENT_ID=AeA1QI...
+```
+Le secret ne va **que** dans le backend : le frontend n'a besoin que du Client ID, qui est public par nature.
+
+### c. Redémarrer les deux serveurs
+Next.js et NestJS ne lisent leurs variables d'environnement **qu'au démarrage**. Sans redémarrage, le bouton PayPal reste absent et l'API répond 503.
+
+### d. Récupérer un compte acheteur de test
+Dashboard → **Testing Tools → Sandbox Accounts**. Deux comptes existent par défaut : un *Personal* (l'acheteur) et un *Business* (le vendeur). Ouvrir le compte Personal → *View/Edit account* pour voir l'email et changer le mot de passe si besoin. Cet identifiant sert à payer dans la fenêtre PayPal — **jamais le vrai compte PayPal**.
+
+### e. Vérifier
+`GET http://localhost:3001/health` doit renvoyer `paypal: "ok"`. Puis, dans une galerie côté client : sélectionner une photo au-delà du forfait → le bouton PayPal jaune doit apparaître à côté du bouton carte → payer avec le compte sandbox → la photo se déverrouille et la vente apparaît dans *Ventes*.
+
+### f. Passer en réel (plus tard)
+1. Le compte doit être un **compte PayPal Business** (gratuit, conversion depuis un compte personnel, vérification d'identité et RIB).
+2. Même parcours, interrupteur **Live** → nouvelles clés (elles n'ont rien à voir avec celles de la sandbox).
+3. `PAYPAL_MODE=live` et les clés live dans les deux fichiers.
+4. Devise imposée par le code : **EUR**. Le compte doit pouvoir recevoir des euros.
+
+### g. Webhook (optionnel, après mise en ligne)
+Dashboard → l'application → *Webhooks* → *Add Webhook* → URL `https://api.trak.art/payments/webhook`, événement `PAYMENT.CAPTURE.COMPLETED` → copier le **Webhook ID** dans `PAYPAL_WEBHOOK_ID`. Le déverrouillage passe déjà par une capture côté serveur, donc c'est une sécurité supplémentaire, pas un prérequis.
+
+### Pièges rencontrés
+- **Clés sandbox utilisées avec `PAYPAL_MODE=live`** (ou l'inverse) → erreur d'authentification. Les deux jeux ne sont pas interchangeables.
+- **Bouton PayPal invisible** → `PAYPAL_CLIENT_ID` absent de `frontend/.env.local`, ou frontend non redémarré.
+- **503 « PayPal n'est pas encore configuré »** → clés absentes ou encore à `ton_paypal_client_id` dans `backend/.env`.
+- **Payer avec son vrai compte PayPal en sandbox** → échec systématique : seuls les comptes sandbox fonctionnent.
 
 ## 2 bis. Stripe — carte bancaire (10 min)
 1. Créer un compte sur https://dashboard.stripe.com (email + mot de passe, aucun statut particulier requis pour tester).
