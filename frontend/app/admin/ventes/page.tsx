@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import AdminShell from "../../components/AdminShell";
 import { api, euros, formatDate } from "../../lib/api";
@@ -11,7 +11,13 @@ const STATUS: Record<string, string> = { completed: "Payé", pending: "En attent
 
 export default function VentesPage() {
   const [rows, setRows] = useState<Payment[] | null>(null);
-  useEffect(() => { api<Payment[]>("/payments/mine").then(setRows).catch(() => setRows([])); }, []);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setError(null);
+    api<Payment[]>("/payments/mine").then(setRows).catch((e) => setError(e instanceof Error ? e.message : "Impossible de charger vos ventes"));
+  }, []);
+  useEffect(load, [load]);
   const done = (rows ?? []).filter((r) => r.status === "completed");
   const gross = done.reduce((s, r) => s + r.amount, 0), net = done.reduce((s, r) => s + r.netAmount, 0);
 
@@ -26,8 +32,15 @@ export default function VentesPage() {
         <table className="w-full text-sm">
           <thead><tr className="text-left border-b border-line">{["Date", "Galerie", "Type", "Montant", "Commission", "Net", "Statut"].map((h) => <th key={h} className="field-label font-normal px-5 py-4">{h}</th>)}</tr></thead>
           <tbody>
-            {rows === null && <tr><td colSpan={7} className="px-5 py-8 meta">Chargement…</td></tr>}
-            {rows?.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center font-serif text-xl text-muted">Aucune vente pour l’instant.</td></tr>}
+            {error && (
+              <tr><td colSpan={7} className="px-5 py-10 text-center">
+                <p className="font-serif text-xl text-terracotta mb-1">Vos ventes n’ont pas pu être chargées.</p>
+                <p className="help mb-4">{error}</p>
+                <button onClick={load} className="btn btn-outline">Réessayer</button>
+              </td></tr>
+            )}
+            {!error && rows === null && <tr><td colSpan={7} className="px-5 py-8 meta">Chargement…</td></tr>}
+            {!error && rows?.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center font-serif text-xl text-muted">Aucune vente pour l’instant.</td></tr>}
             {rows?.map((r) => (
               <tr key={r.id} className="border-b border-line/60 last:border-0 hover:bg-white/30 transition-colors">
                 <td className="px-5 py-4 num text-muted">{formatDate(r.createdAt, { day: "2-digit", month: "2-digit", year: "numeric" })}</td>

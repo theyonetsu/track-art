@@ -23,13 +23,14 @@ function Dashboard() {
   const [toast, setToast] = useState<{ m: string; e?: boolean } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [g, m] = await Promise.all([api<Gallery[]>("/galleries"), api<Me>("/me")]);
     setGalleries(g); setMe(m);
     setForm((f) => ({ ...f, maxSelection: m.defaultIncluded }));
   }, []);
-  useEffect(() => { load().catch(() => {}); }, [load]);
+  useEffect(() => { load().catch((e) => setLoadError(e instanceof Error ? e.message : "Vos galeries n’ont pas pu être chargées")); }, [load]);
   useEffect(() => { if (params.get("bienvenue")) setToast({ m: "Bienvenue ! Créez votre première galerie." }); }, [params]);
 
   async function create(e: React.FormEvent) {
@@ -56,8 +57,8 @@ function Dashboard() {
             <Field label="Date de séance"><input type="date" className="input num" value={form.eventDate} onChange={(e) => setForm({ ...form, eventDate: e.target.value })} /></Field>
           </div>
           <Field label="Email du client" hint="Pour envoyer le lien en un clic."><input type="email" className="input" placeholder="client@email.com" value={form.clientEmail} onChange={(e) => setForm({ ...form, clientEmail: e.target.value })} /></Field>
-          <Field label="Photos incluses dans le forfait" hint={`Nombre libre. Votre valeur par défaut : ${me?.defaultIncluded ?? 30}.`}>
-            <input type="number" min={1} className="input num" value={form.maxSelection} onChange={(e) => setForm({ ...form, maxSelection: Number(e.target.value) })} required />
+          <Field label="Photos incluses dans le forfait" hint={form.maxSelection === 0 ? "0 = vente à l’unité : chaque photo est payante." : `Nombre libre. Votre valeur par défaut : ${me?.defaultIncluded ?? 30}. Mettez 0 pour vendre à l’unité.`}>
+            <input type="number" min={0} className="input num" value={form.maxSelection} onChange={(e) => setForm({ ...form, maxSelection: Number(e.target.value) })} required />
           </Field>
           <button type="submit" disabled={loading} className="btn btn-accent w-full mt-1">{loading ? "Création…" : "Créer et ajouter les photos"}</button>
           <p className="help">Mot de passe, prix, durée de validité et message au client se règlent à l’étape suivante.</p>
@@ -71,8 +72,15 @@ function Dashboard() {
               {archivedCount > 0 || showArchived ? <button onClick={() => setShowArchived(!showArchived)} className="tap label text-muted hover:text-terracotta">{showArchived ? "← En cours" : `Archivées (${archivedCount})`}</button> : null}
             </div>
           </div>
-          {galleries === null && <p className="meta">Chargement…</p>}
-          {galleries !== null && visible.length === 0 && (
+          {loadError && (
+            <div className="card p-8 flex flex-col items-start gap-3">
+              <p className="font-serif text-2xl text-terracotta">Vos galeries n’ont pas pu être chargées.</p>
+              <p className="help">{loadError}</p>
+              <button onClick={() => { setLoadError(null); load().catch((e) => setLoadError(e instanceof Error ? e.message : "Erreur")); }} className="btn btn-outline">Réessayer</button>
+            </div>
+          )}
+          {!loadError && galleries === null && <p className="meta">Chargement…</p>}
+          {!loadError && galleries !== null && visible.length === 0 && (
             <div className="py-20 text-center flex flex-col items-center gap-3 card">
               <p className="font-serif text-2xl text-ink-soft">{showArchived ? "Aucune galerie archivée." : "Aucune galerie pour l'instant."}</p>
               {!showArchived && <p className="help">Créez votre première galerie à gauche, puis glissez-déposez vos photos.</p>}

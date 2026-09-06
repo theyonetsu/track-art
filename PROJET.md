@@ -125,7 +125,20 @@ Corrigé :
 
 Contrôlé après correction à 375, 768 et 1440 px : aucun débordement horizontal, plus aucune cible sous 44 px sur les pages publiques et la galerie client, `tsc` propre des deux côtés.
 
-Reste à vérifier avec une session connectée : tableau de bord, ventes, compte, plateforme, détail de galerie (parcours d'upload et d'options).
+### Deuxième passe : animations et pages connectées
+
+**Apparition au défilement** — trois causes cumulées à la saccade ressentie au premier défilement, toutes corrigées et vérifiées dans le navigateur :
+- l'observateur ne s'attachait qu'après l'hydratation ; un bloc déjà atteint restait invisible puis apparaissait en fondu. `Reveal` vérifie désormais sa position au montage : déjà à l'écran → affiché tout de suite, et **sans transition** si l'utilisateur avait déjà défilé (classe `is-instant`).
+- marge d'observation **négative** (−8 %) + seuil 12 % : le bloc n'apparaissait qu'une fois bien entré dans l'écran. Marge **positive** (+18 %) et seuil 0 → mesuré : un bloc situé 96 px sous la fenêtre est déjà à `opacity: 1`.
+- transitions de 0,8–0,9 s et décalages jusqu'à 0,7 s → 0,45–0,5 s et 0,05 s ; déplacement de 24 → 14 px.
+
+**Pages connectées (revue de code)** :
+- `Ventes` : `catch(() => setRows([]))` affichait « Aucune vente pour l'instant » quand l'API échouait — le photographe croyait n'avoir aucune vente. État d'erreur distinct avec « Réessayer ».
+- `Galeries` : `catch(() => {})` laissait un « Chargement… » perpétuel. Message d'erreur + reprise.
+- `Plateforme` : statistiques indisponibles → page muette. Message d'erreur, état de chargement, et ligne « aucun compte » dans le tableau.
+- Champ « Photos incluses » du formulaire de création aligné sur le reste (0 autorisé = vente à l'unité).
+
+Reste à vérifier en cliquant, avec une session connectée : tableau de bord, ventes, compte, plateforme, détail de galerie (parcours d'upload et d'options).
 
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration `platform_defaults_and_policy` puis tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.

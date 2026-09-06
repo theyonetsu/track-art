@@ -88,7 +88,11 @@ export default function PlateformePage() {
   const [metric, setMetric] = useState<(typeof SERIES)[number]>(SERIES[0]);
   const [sort, setSort] = useState<{ key: string; desc: boolean }>({ key: "gross", desc: true });
 
-  const load = useCallback(() => api<Stats>("/admin/stats").then(setStats).catch((e) => setToast({ m: e.message, e: true })), []);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const load = useCallback(
+    () => api<Stats>("/admin/stats").then((d) => { setStats(d); setStatsError(null); }).catch((e) => setStatsError(e instanceof Error ? e.message : "Statistiques indisponibles")),
+    [],
+  );
 
   useEffect(() => {
     load();
@@ -129,6 +133,15 @@ export default function PlateformePage() {
         </button>
       }
     >
+      {statsError && (
+        <div className="card p-8 flex flex-col items-start gap-3 mb-6">
+          <p className="font-serif text-2xl text-terracotta">Les statistiques n’ont pas pu être chargées.</p>
+          <p className="help">{statsError}</p>
+          <button onClick={() => load()} className="btn btn-outline">Réessayer</button>
+        </div>
+      )}
+      {!stats && !statsError && <p className="meta mb-6">Chargement des statistiques…</p>}
+
       {t && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 reveal-stagger is-visible">
@@ -163,6 +176,7 @@ export default function PlateformePage() {
         </section>
       )}
 
+      {stats && (
       <div className="card table-scroll mb-6">
         <table className="w-full text-sm">
           <thead>
@@ -177,6 +191,7 @@ export default function PlateformePage() {
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center font-serif text-xl text-muted">Aucun compte pour l’instant.</td></tr>}
             {rows.map((u) => (
               <tr key={u.id} className="border-b border-line/60 last:border-0">
                 <td className="px-5 py-4">
@@ -195,6 +210,7 @@ export default function PlateformePage() {
           </tbody>
         </table>
       </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
           {s && (
