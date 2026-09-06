@@ -79,12 +79,17 @@ export default function PlateformePage() {
                 <Switch checked={s.allowAllPhotos} onChange={(v) => setS({ ...s, allowAllPhotos: v })} label="Proposer l’achat groupé" hint="Bouton « débloquer toutes les photos » côté client." />
                 <div className="border-t border-line pt-5 flex flex-col gap-4">
                   <p className="subsection">Encadrement des valeurs</p>
+                  <p className="help">Bornes appliquées quand le droit correspondant est accordé. Toujours modifiables : elles reprennent effet dès que vous réactivez le droit.</p>
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Prix minimum (€)"><input type="number" min={0} className="input num" value={s.priceMin} onChange={num("priceMin")} disabled={!s.allowPricing} /></Field>
-                    <Field label="Prix maximum (€)"><input type="number" min={0} className="input num" value={s.priceMax} onChange={num("priceMax")} disabled={!s.allowPricing} /></Field>
+                    <Field label="Prix minimum (€)" hint={s.allowPricing ? undefined : "Sans effet : les tarifs sont fixés par vous."}>
+                      <input type="number" min={0} className="input num" value={s.priceMin} onChange={num("priceMin")} />
+                    </Field>
+                    <Field label="Prix maximum (€)">
+                      <input type="number" min={0} className="input num" value={s.priceMax} onChange={num("priceMax")} />
+                    </Field>
                   </div>
-                  <Field label="Validité maximale (jours)" hint="Plafond que le photographe ne peut pas dépasser.">
-                    <input type="number" min={1} className="input num" value={s.maxExpiryDays} onChange={num("maxExpiryDays")} disabled={!s.allowExpiry} />
+                  <Field label="Validité maximale (jours)" hint={s.allowExpiry ? "Plafond que le photographe ne peut pas dépasser." : "Sans effet : les durées sont fixées par vous."}>
+                    <input type="number" min={1} className="input num" value={s.maxExpiryDays} onChange={num("maxExpiryDays")} />
                   </Field>
                 </div>
                 <button onClick={save} disabled={saving} className="btn btn-primary self-start">{saving ? "Enregistrement…" : "Enregistrer les réglages"}</button>
