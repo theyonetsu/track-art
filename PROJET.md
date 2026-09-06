@@ -83,8 +83,34 @@ Corrigé :
 
 Restrictions d'environnement (pas des bugs) : le navigateur intégré de Cowork bloque `localhost:9000`, donc les aperçus MinIO n'y apparaissent pas (ils s'affichent bien dans Chrome) ; `next build` ne peut pas tourner depuis la VM Linux (binaires SWC Windows) → **à lancer une fois côté Windows avant la mise en ligne** : `cd frontend && npm run build`.
 
+## Session du 6 septembre — Réglages plateforme & navigation retour
+
+### Réglages plateforme (super-admin)
+`Settings` porte désormais **toutes** les valeurs par défaut de la plateforme — photos incluses, prix photo supplémentaire, **prix « toutes les photos »**, prolongation (prix + jours), validité — en plus de la commission. Elles s'appliquent à tout photographe qui n'a rien défini de son côté.
+
+S'y ajoutent des **droits** accordés aux photographes, réglables depuis `/admin/plateforme` :
+- `allowPricing` — fixer ses propres tarifs
+- `allowExpiry` — fixer validité et durée de prolongation
+- `allowAllPhotos` — proposer l'achat groupé
+- encadrement : `priceMin` / `priceMax`, `maxExpiryDays`
+
+Cascade appliquée dans `effectiveSettings` : **galerie → photographe → plateforme**, sauf si le droit correspondant est retiré, auquel cas la valeur plateforme s'impose à toutes les galeries, existantes comprises (aucune migration de données nécessaire, la surcharge est simplement ignorée). La validation est doublée côté écriture (`galleries.sanitize`, `users.updateMe`) pour qu'un appel API direct ne contourne pas les bornes.
+
+`GET /settings/policy` (tout compte connecté) expose droits + valeurs par défaut ; `/admin/compte` et `/admin/gallery/[id]` grisent les champs verrouillés avec une pastille « Fixé par Track.Art » et n'envoient plus que les clés modifiables.
+
+Migration : `20260906100000_platform_defaults_and_policy` — **à appliquer côté Windows** (`cd backend && npx prisma migrate dev`).
+
+### Navigation retour (audit complet)
+Chaque page a désormais une sortie explicite :
+- pages légales, contact, aide → composant `BackLink` (« ← Accueil ») en haut de contenu
+- espace photographe → lien « ← Site » dans l'en-tête (et dans la nav mobile), **Plateforme** ajouté à la nav mobile du super-admin (il était absent sous `lg`)
+- galerie client → pied de page « ↑ Haut de page » + « Galerie privée propulsée par Track.Art » (FR/EN/ES), écran mot de passe → logo cliquable
+- nouveaux `app/error.tsx` et `app/global-error.tsx` : un écran d'erreur ne peut plus être un cul-de-sac
+- `/contact` : ancre `<a>` remplacée par `<Link>`
+Déjà en place et vérifiés : `/admin/login`, `/inscription`, `not-found`, « ← Galeries » sur le détail d'une galerie.
+
 ## Pas encore fait (par ordre de priorité)
-0. **Appliquer la migration et tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
+0. **Appliquer la migration `platform_defaults_and_policy` puis tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.
 1. **Créer une app PayPal Sandbox** (developer.paypal.com) et renseigner `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` dans `backend/.env` et `PAYPAL_CLIENT_ID` dans `frontend/.env.local`, puis tester l'achat d'extras.
 1b. Vérifier sur le PC (Chrome) que les images des galeries s'affichent (le navigateur intégré de Claude bloque le port 9000 de MinIO, donc non vérifiable depuis Cowork) : `docker compose up -d`, `npx prisma migrate dev` (migration `photo_paid` à appliquer), seed, lancer les deux serveurs, parcours complet admin → client → PayPal sandbox.
 2. Prolongation de galerie payante côté client (backend : model `Extension` existe, pas de route ni d'UI).
