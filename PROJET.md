@@ -138,7 +138,25 @@ Contrôlé après correction à 375, 768 et 1440 px : aucun débordement horizon
 - `Plateforme` : statistiques indisponibles → page muette. Message d'erreur, état de chargement, et ligne « aucun compte » dans le tableau.
 - Champ « Photos incluses » du formulaire de création aligné sur le reste (0 autorisé = vente à l'unité).
 
-Reste à vérifier en cliquant, avec une session connectée : tableau de bord, ventes, compte, plateforme, détail de galerie (parcours d'upload et d'options).
+### Troisième passe : parcours connecté testé avec de vraies données
+
+Testé en cliquant, connecté en super-admin : dashboard, ventes, compte, plateforme, détail de galerie, création d'une galerie à l'unité, envoi de 23 photos, ouverture côté client, suppression.
+
+Vérifié bon : aucun débordement horizontal sur les cinq pages en 1440 et 375 px ; l'envoi découpé fonctionne (23 fichiers → 2 lots de 20 et 3, noms d'origine conservés, 23 photos en base) ; la galerie à 0 photo incluse affiche bien « Chaque photo est à X € » et 24 aperçus chargés ; `/settings/policy` sert les droits en direct ; le tableau de bord affiche les vraies données (2 galeries, 5 photos, 100 % de liens ouverts).
+
+Corrigé :
+- **« Actualisé à 06/09/2026 19:05 »** : `toLocaleDateString` imprime la date même quand on ne demande que l'heure. Helper `formatTime` ajouté.
+- **« 1 comptes au total »** : accord au pluriel.
+- **Paiements abandonnés éternellement « en attente »** — deux traînaient depuis des tests PayPal. Une fenêtre fermée laissait une ligne en attente pour toujours et polluait la page Ventes. Tâche `expireStalePayments` à 4 h : au-delà de 24 h, statut `abandoned`, affiché en grisé.
+- **Forfait groupé plus cher que l'achat à l'unité** : découvert en conditions réelles (50 € le lot contre 23 × 2 € = 46 €). Alerte dans les réglages de la galerie — le client n'aurait aucune raison de choisir le forfait.
+- **« 0/0 incluses utilisées »** remplacé par « vente à l'unité » dans l'en-tête de galerie.
+- Cibles tactiles : « ← Galeries », en-têtes de tri du tableau plateforme, et zone de contact des interrupteurs élargie via `::before` (sans changer leur apparence).
+
+Connu et assumé : les actions au survol d'une photo dans la grille admin font 36 px sur téléphone. Les agrandir recouvrirait la vignette ; c'est un outil de travail dense, pas la page vue par le client — celle-ci ne contient plus aucune cible sous 44 px.
+
+Piège de configuration à connaître : la valeur par défaut **du compte** l'emporte sur celle de la plateforme (cascade galerie → photographe → plateforme). Le prix à 2 € observé pendant le test venait du `defaultExtraPhotoPrice` du compte super-admin, pas du réglage plateforme à 8 €.
+
+Reste à vérifier en conditions réelles : paiement Stripe et PayPal de bout en bout (clés à renseigner) : tableau de bord, ventes, compte, plateforme, détail de galerie (parcours d'upload et d'options).
 
 ## Pas encore fait (par ordre de priorité)
 0. **Appliquer la migration `platform_defaults_and_policy` puis tester** : inscription d'un 2e photographe, galerie avec mot de passe, message, nombre libre, prolongation offerte, page compte, ventes, plateforme.

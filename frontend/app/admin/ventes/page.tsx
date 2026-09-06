@@ -7,7 +7,7 @@ import { api, euros, formatDate } from "../../lib/api";
 type Payment = { id: string; type: string; amount: number; platformFee: number; netAmount: number; commissionRate: number; status: string; createdAt: string; photoIds: string[]; gallery: { id: string; title: string; clientName: string | null } };
 
 const TYPE: Record<string, string> = { BuyExtraPhotos: "Photos supplémentaires", ExtendGallery: "Prolongation", photos: "Photos supplémentaires" };
-const STATUS: Record<string, string> = { completed: "Payé", pending: "En attente" };
+const STATUS: Record<string, string> = { completed: "Payé", pending: "En attente", abandoned: "Abandonné" };
 
 export default function VentesPage() {
   const [rows, setRows] = useState<Payment[] | null>(null);
@@ -49,7 +49,7 @@ export default function VentesPage() {
                 <td className="px-5 py-4 num">{euros(r.amount)}</td>
                 <td className="px-5 py-4 num text-muted">{euros(r.platformFee)} <span className="meta">({r.commissionRate} %)</span></td>
                 <td className="px-5 py-4 num font-medium">{euros(r.netAmount)}</td>
-                <td className="px-5 py-4"><span className={`badge ${r.status === "completed" ? "badge-accent" : ""}`}>{STATUS[r.status] ?? r.status}</span></td>
+                <td className="px-5 py-4"><span className={`badge ${r.status === "completed" ? "badge-accent" : ""} ${r.status === "abandoned" ? "opacity-50" : ""}`}>{STATUS[r.status] ?? r.status}</span></td>
               </tr>
             ))}
           </tbody>

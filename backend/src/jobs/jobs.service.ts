@@ -14,6 +14,21 @@ export class JobsService {
     private email: EmailService,
   ) {}
 
+  /**
+   * 04:00 — un paiement dont le client a fermé la fenêtre PayPal ou abandonné
+   * le formulaire de carte reste « en attente » pour toujours et pollue la page
+   * Ventes du photographe. Au-delà de 24 h, il est marqué abandonné.
+   */
+  @Cron('0 4 * * *')
+  async expireStalePayments() {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const { count } = await this.prisma.payment.updateMany({
+      where: { status: 'pending', createdAt: { lt: cutoff } },
+      data: { status: 'abandoned' },
+    });
+    if (count) this.logger.log(`${count} paiement(s) sans suite marqué(s) abandonné(s)`);
+  }
+
   /** 08:00 — warn clients whose gallery expires within 3 days. */
   @Cron('0 8 * * *')
   async sendExpiryWarnings() {

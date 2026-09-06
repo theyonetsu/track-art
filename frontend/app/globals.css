@@ -179,6 +179,8 @@ body {
 /* Cibles tactiles confortables sur téléphone (recommandation : 44 px) */
 @media (max-width: 767px) {
   nav a, nav button, footer nav a { min-height: 44px; display: inline-flex; align-items: center; }
+  /* Interrupteurs : zone de contact élargie sans changer l'apparence */
+  .switch::before { content: ""; position: absolute; inset: -10px; }
   /* Logos et actions isolées : cibles au doigt confortables */
   header > div > a, header a[href="/"], footer a[href="/"], .tap { min-height: 44px; display: inline-flex; align-items: center; }
 }

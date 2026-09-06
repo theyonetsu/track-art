@@ -169,6 +169,11 @@ export default function AdminGalleryPage() {
     ...(lockPrice || noAllPhotos ? [] : ["allPhotosPrice"]),
   ];
 
+  const lockedCount = photos.filter((p) => !p.unlocked).length;
+  const bundleWarning =
+    !!g.effective.allPhotosPrice && lockedCount > 0 &&
+    g.effective.allPhotosPrice >= lockedCount * g.effective.extraPhotoPrice;
+
   const d = daysLeft(g.expiresAt);
   const unlocked = photos.filter((p) => p.unlocked).length;
   const included = photos.filter((p) => p.unlocked && !p.paid).length;
@@ -179,11 +184,11 @@ export default function AdminGalleryPage() {
       {/* En-tête galerie */}
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8 pb-6 border-b border-line">
         <div className="flex flex-col gap-2 min-w-0">
-          <Link href="/admin/dashboard" className="label text-muted hover:text-terracotta">← Galeries</Link>
+          <Link href="/admin/dashboard" className="tap label text-muted hover:text-terracotta">← Galeries</Link>
           <h1 className="font-serif text-4xl md:text-5xl truncate">{g.title}</h1>
           <p className="meta">
             {g.clientName && <span>{g.clientName} · </span>}
-            <span className="num">{photos.length}</span> photo{photos.length > 1 ? "s" : ""} · <span className="num">{included}</span>/<span className="num">{g.maxSelection}</span> incluses utilisées · <span className="num">{unlocked}</span> déverrouillée{unlocked > 1 ? "s" : ""}
+            <span className="num">{photos.length}</span> photo{photos.length > 1 ? "s" : ""} · {g.maxSelection === 0 ? "vente à l’unité" : <><span className="num">{included}</span>/<span className="num">{g.maxSelection}</span> incluses utilisées</>} · <span className="num">{unlocked}</span> déverrouillée{unlocked > 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -251,6 +256,14 @@ export default function AdminGalleryPage() {
                 value={lockPrice || noAllPhotos ? g.effective.allPhotosPrice ?? "" : form.allPhotosPrice ?? ""} onChange={num("allPhotosPrice")}
                 placeholder={g.effective.allPhotosPrice ? String(g.effective.allPhotosPrice) : "Non proposé"} />
             </Field>
+            {bundleWarning && (
+              <p className="help border-l-2 border-terracotta pl-3">
+                Attention : votre forfait « toutes les photos » ({g.effective.allPhotosPrice} €) coûte plus cher que
+                les {lockedCount} photo{lockedCount > 1 ? "s" : ""} restante{lockedCount > 1 ? "s" : ""} prises à l’unité
+                ({lockedCount} × {g.effective.extraPhotoPrice} € = {lockedCount * g.effective.extraPhotoPrice} €).
+                Le client n’a aucune raison de le choisir.
+              </p>
+            )}
             <p className="help">Commission Track.Art en vigueur : <span className="num">{g.effective.commissionRate} %</span> sur chaque paiement client. Le prix d’une photo peut aussi être modifié individuellement dans la grille.</p>
             <button onClick={() => save(editablePricing)} disabled={saving} className="btn btn-primary self-start">Enregistrer</button>
           </Section>

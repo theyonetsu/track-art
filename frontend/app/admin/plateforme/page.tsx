@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminShell from "../../components/AdminShell";
 import { Section, Field, Switch, Toast } from "../../components/ui";
-import { api, euros, formatDate } from "../../lib/api";
+import { api, euros, formatDate, formatTime } from "../../lib/api";
 
 type Row = {
   id: string; email: string; name: string | null; studioName: string | null; role: string; createdAt: string;
@@ -129,7 +129,7 @@ export default function PlateformePage() {
       title="Plateforme"
       actions={
         <button onClick={() => load()} className="btn btn-ghost">
-          {stats ? `Actualisé à ${formatDate(stats.generatedAt, { hour: "2-digit", minute: "2-digit" })}` : "Chargement…"}
+          {stats ? `Actualisé à ${formatTime(stats.generatedAt)}` : "Chargement…"}
         </button>
       }
     >
@@ -145,7 +145,7 @@ export default function PlateformePage() {
       {t && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 reveal-stagger is-visible">
-            <div className="card p-5"><span className="field-label">Photographes</span><p className="font-serif text-3xl num">{t.photographers}</p><span className="meta">{t.users} comptes au total</span></div>
+            <div className="card p-5"><span className="field-label">Photographes</span><p className="font-serif text-3xl num">{t.photographers}</p><span className="meta">{t.users} compte{t.users > 1 ? "s" : ""} au total</span></div>
             <div className="card p-5"><span className="field-label">Galeries</span><p className="font-serif text-3xl num">{t.galleries}</p><span className="meta">{t.activeGalleries} actives · {t.photos} photos</span></div>
             <div className="card p-5"><span className="field-label">Volume encaissé</span><p className="font-serif text-3xl num">{euros(t.gross)}</p><span className="meta">{t.sales} vente{t.sales > 1 ? "s" : ""}</span></div>
             <div className="card p-5"><span className="field-label">Vos commissions</span><p className="font-serif text-3xl num text-terracotta">{euros(t.fees)}</p><span className="meta">{euros(t.net)} reversés</span></div>
@@ -183,7 +183,7 @@ export default function PlateformePage() {
             <tr className="text-left border-b border-line">
               {COLUMNS.map((c) => (
                 <th key={c.key} className="px-5 py-4">
-                  <button onClick={() => setSort((p) => ({ key: c.key, desc: p.key === c.key ? !p.desc : true }))} className="field-label font-normal hover:text-terracotta transition-colors whitespace-nowrap">
+                  <button onClick={() => setSort((p) => ({ key: c.key, desc: p.key === c.key ? !p.desc : true }))} className="field-label font-normal hover:text-terracotta transition-colors whitespace-nowrap min-h-11 inline-flex items-center">
                     {c.label}{sort.key === c.key && <span className="text-terracotta"> {sort.desc ? "↓" : "↑"}</span>}
                   </button>
                 </th>

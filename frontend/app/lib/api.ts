@@ -38,6 +38,12 @@ export function formatDate(d: string | Date | null | undefined, opts: Intl.DateT
   return new Date(d).toLocaleDateString("fr-FR", opts);
 }
 
+/** Heure seule (toLocaleDateString imprime la date même si on ne demande que l'heure). */
+export function formatTime(d: string | Date | null | undefined) {
+  if (!d) return "";
+  return new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function daysLeft(d: string | null | undefined) {
   if (!d) return null;
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
