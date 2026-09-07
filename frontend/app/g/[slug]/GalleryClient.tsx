@@ -485,7 +485,9 @@ function PayPalButtons({ t, lang, paypalClientId, create, onDone }: { t: Dict; l
   useEffect(() => {
     if (!paypalClientId || !ref.current) { setStatus('error'); setMsg(t.noPay); return; }
     const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&locale=${PAYPAL_LOCALE[lang]}`;
+    // paylater : « payer en plusieurs fois », affiché par PayPal si le client y est éligible.
+    // applepay : nécessite HTTPS et un domaine enregistré chez PayPal — actif une fois en ligne, ignoré en local.
+    script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=EUR&locale=${PAYPAL_LOCALE[lang]}&enable-funding=paylater,applepay`;
     script.async = true;
     script.onerror = () => { setStatus('error'); setMsg(t.ppLoad); };
     script.onload = () => {
