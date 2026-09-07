@@ -319,7 +319,8 @@ export class PaymentsService {
       'line_items[0][price_data][product_data][name]': `${gallery.title} — ${label}`,
       'metadata[paymentId]': payment.id,
       client_reference_id: payment.id,
-      locale: 'auto',
+      // La page Stripe suit la langue choisie pour la galerie, pas celle du navigateur
+      locale: (['fr', 'en', 'es'].includes(gallery.languages?.[0]) ? gallery.languages[0] : 'auto'),
     });
 
     await this.prisma.payment.update({ where: { id: payment.id }, data: { paypalId: session.id } });
