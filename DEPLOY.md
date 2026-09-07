@@ -13,6 +13,47 @@ Tout est prêt côté code : Dockerfiles, migrations automatiques, sonde `/healt
 | Brevo (ou Resend) | emails (lien, rappel, confirmation) | 300 emails/jour gratuits |
 | Registrar du domaine trak.art | DNS | domaine déjà acheté |
 
+## 0 bis. Ce qui est déjà prêt (vérifié le 7 septembre)
+
+- `backend/Dockerfile` : installe, génère le client Prisma, compile, puis au démarrage `prisma migrate deploy && node dist/main.js` — les migrations passent toutes seules à chaque déploiement.
+- `frontend/Dockerfile` : `npm ci`, build Next, `npm start`.
+- `.dockerignore` à la racine et dans chaque service : ni `node_modules`, ni `.next`, ni `.env` dans les images.
+- **Build de production vérifiée** : 16 routes générées, TypeScript propre. Le seul point qui a échoué en local est le téléchargement des polices Google, bloqué par le réseau de la machine de test — l'environnement de build Railway a un accès internet complet, ce point ne se posera pas.
+- Sonde `/health` : renvoie l'état de la base, de PayPal, de Stripe, du SMTP et du stockage. À utiliser comme *healthcheck* Railway.
+
+### Variables d'environnement à créer sur Railway
+
+**Service backend**
+| Variable | Valeur |
+|---|---|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (référence Railway) |
+| `PORT` | `3001` |
+| `APP_URL` | `https://trak.art` |
+| `API_URL` | `https://api.trak.art` |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `TOTP_ENCRYPT_KEY` | trois valeurs distinctes : `openssl rand -hex 32` |
+| `R2_ENDPOINT`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_BUCKET` | Cloudflare R2 (bascule automatique : dès que `R2_ENDPOINT` est défini, MinIO est ignoré) |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE` | `live` uniquement quand le compte Business est validé |
+| `STRIPE_SECRET_KEY` | optionnel |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Brevo |
+
+**Service frontend**
+| Variable | Valeur |
+|---|---|
+| `API_URL` | URL interne du backend (`http://<service>.railway.internal:3001`) |
+| `NEXT_PUBLIC_API_URL` | `/api` |
+| `PAYPAL_CLIENT_ID` | même valeur que le backend |
+
+Les variables du frontend doivent être présentes **au moment du build** (Next les fige) : les définir avant le premier déploiement, sinon redéployer après les avoir ajoutées.
+
+### Ordre de mise en ligne
+1. Créer le projet Railway et y ajouter **PostgreSQL** en premier (le backend en dépend).
+2. Déployer le **backend** depuis le dépôt (`backend/Dockerfile`), avec ses variables. Vérifier `/health`.
+3. Déployer le **frontend**, avec `API_URL` pointant vers le backend interne.
+4. Créer le bucket **R2** et brancher ses clés sur le backend, puis redéployer.
+5. **Brevo** pour les emails, puis les DNS de `trak.art` (frontend) et `api.trak.art` (backend).
+6. Créer le compte super-admin en production, changer son mot de passe, et supprimer les galeries de test.
+
+
 ## 1. Pousser le code sur GitHub
 ```powershell
 cd C:\Users\gamer\Desktop\track-art
