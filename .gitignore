@@ -34,3 +34,5 @@ coverage/
 .vercel
 
 *-log.txt
+
+SECRETS-RAILWAY.txt

@@ -13,7 +13,14 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 export class StorageService implements OnModuleInit {
   private readonly logger = new Logger(StorageService.name);
   private s3: S3Client;
-  private bucket = process.env.MINIO_BUCKET || process.env.R2_BUCKET || 'trackart';
+  /**
+   * En production (R2_ENDPOINT défini), c'est R2_BUCKET qui fait foi : sinon un
+   * MINIO_BUCKET resté dans l'environnement enverrait les photos vers un bucket
+   * qui n'existe pas côté Cloudflare.
+   */
+  private bucket = process.env.R2_ENDPOINT
+    ? process.env.R2_BUCKET || 'trackart-photos'
+    : process.env.MINIO_BUCKET || 'trackart';
 
   constructor() {
     const r2Endpoint = process.env.R2_ENDPOINT;
