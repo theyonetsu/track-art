@@ -6,9 +6,14 @@
   --color-sand-deep: #E6DACB;
   --color-ink: #221B18;
   --color-ink-soft: #4F423C;
-  --color-muted: #7C6C62;
-  --color-line: #D3C3B3;
-  --color-terracotta: #9E4F37;
+  /* Contrastes mesurés sur --color-sand ET --color-sand-deep (WCAG 2.1, 1.4.3).
+     Les anciennes valeurs #7C6C62 et #9E4F37 tombaient à 4.07 et 4.21 sur le
+     sable foncé, sous le seuil de 4.5 exigé pour du texte : assombries d'un cran
+     en conservant exactement la même teinte chaude. */
+  --color-muted: #695C53;          /* 5.22 sur sand · 4.68 sur sand-deep */
+  --color-line: #D3C3B3;           /* séparations décoratives uniquement */
+  --color-line-strong: #857B71;    /* bordure des champs et contrôles : 3.2 sur sand (1.4.11) */
+  --color-terracotta: #954A34;     /* 5.14 sur sand · 4.61 sur sand-deep */
   --color-terracotta-soft: #C4877B;
 
   --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
@@ -92,6 +97,15 @@ body {
   transition-duration: 0.06s;
 }
 .btn:focus-visible { outline: 2px solid var(--color-terracotta); outline-offset: 3px; }
+/* Filet de sécurité : tout élément focusable qui n'a pas son propre style de
+   focus reçoit le même anneau. Sans cela, une navigation au clavier se perd
+   sur les liens du pied de page et les boutons texte. */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--color-terracotta);
+  outline-offset: 3px;
+}
+.input:focus-visible { outline-offset: 0; }
 .btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
 .btn-primary { background: linear-gradient(180deg, #322824 0%, var(--color-ink) 100%); color: var(--color-sand); border-color: #1A1512; }
 
@@ -124,10 +138,27 @@ body {
 .glass { background: rgba(239, 230, 218, 0.82); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
 
 /* Champs */
+/* Visible uniquement au clavier, au moment où il sert. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100px;
+  z-index: 100;
+  background: var(--color-ink);
+  color: var(--color-sand);
+  padding: 0.75rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: top 0.15s ease-out;
+}
+.skip-link:focus { top: 1rem; }
+
 .input {
   width: 100%;
   background: transparent;
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--color-line-strong);
   padding: 0.8rem 1rem;
   font-size: 0.9rem;
   font-weight: 300;
@@ -139,7 +170,8 @@ body {
   box-shadow: inset 0 1px 3px rgba(34, 27, 24, 0.07), 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 .input:focus { border-color: var(--color-ink); box-shadow: 0 0 0 3px rgba(158, 79, 55, 0.12); }
-.input::placeholder { color: var(--color-muted); opacity: 0.8; }
+/* opacity ramenait le placeholder sous le seuil de contraste : retirée. */
+.input::placeholder { color: var(--color-muted); opacity: 1; }
 .input option { background: var(--color-sand); color: var(--color-ink); }
 }
 

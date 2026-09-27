@@ -32,11 +32,11 @@ export default function Inscription() {
   }
 
   return (
-    <main className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2 relative">
+    <main id="contenu" className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2 relative">
       <Link href="/" className="absolute top-6 left-6 z-10 label text-ink-soft hover:text-terracotta transition-colors flex items-center gap-2">
         <span aria-hidden="true">←</span> Accueil
       </Link>
-      <div className="hidden lg:flex flex-col justify-between p-16 relative" style={{ backgroundImage: "url(/showcase/bouquet.webp)", backgroundSize: "cover", backgroundPosition: "center" }}><div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(239,230,218,0.55) 0%, rgba(239,230,218,0.85) 100%)" }} />
+      <div className="hidden lg:flex flex-col justify-between p-16 relative" aria-hidden="true" style={{ backgroundImage: "url(/showcase/bouquet.webp)", backgroundSize: "cover", backgroundPosition: "center" }}><div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(239,230,218,0.55) 0%, rgba(239,230,218,0.85) 100%)" }} />
         <div className="relative"><Logo size="md" /></div>
         <div className="relative flex flex-col gap-5 max-w-md">
           <p className="eyebrow text-ink">Compte photographe</p>
@@ -59,7 +59,7 @@ export default function Inscription() {
           <label className="flex flex-col gap-1.5"><span className="field-label">Email</span><input type="email" className="input" value={form.email} onChange={set("email")} placeholder="vous@studio.fr" required /></label>
           <label className="flex flex-col gap-1.5"><span className="field-label">Téléphone (optionnel)</span><input type="tel" className="input" value={form.phone} onChange={set("phone")} placeholder="+33 6 00 00 00 00" /></label>
           <label className="flex flex-col gap-1.5"><span className="field-label">Mot de passe</span><input type="password" className="input" value={form.password} onChange={set("password")} placeholder="8 caractères minimum" minLength={8} required /></label>
-          {error && <p className="text-terracotta text-sm">{error}</p>}
+          {error && <p role="alert" className="text-terracotta text-sm">{error}</p>}
           <button type="submit" disabled={loading} className="btn btn-accent w-full mt-2">{loading ? "Création…" : "Créer mon compte"}</button>
           <p className="help text-center">En créant un compte vous acceptez nos <Link href="/cgv" className="link-underline text-ink">conditions générales</Link> et notre <Link href="/confidentialite" className="link-underline text-ink">politique de confidentialité</Link>.</p>
           <p className="text-center text-sm text-muted">Déjà un compte ? <Link href="/admin/login" className="text-ink link-underline hover:text-terracotta">Se connecter</Link></p>

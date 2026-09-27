@@ -25,7 +25,7 @@ export default function Home() {
       <SiteHeader />
 
       {/* Hero */}
-      <section className="px-6 md:px-20 pt-12 md:pt-20 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section id="contenu" className="px-6 md:px-20 pt-12 md:pt-20 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-5 flex flex-col gap-7 fade-up">
           <p className="eyebrow">Galeries privées pour photographes</p>
           <h1 className="font-serif text-5xl md:text-7xl leading-[1.02] font-normal">
@@ -64,7 +64,7 @@ export default function Home() {
           ["/showcase/voile.webp", "h-44 md:h-72"],
           ["/showcase/nuit.webp", "h-48 md:h-64"],
         ].map(([src, h]) => (
-          <div key={src} className={`tile ${h}`} style={{ backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+          <div key={src} aria-hidden="true" role="presentation" className={`tile ${h}`} style={{ backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }} />
         ))}
       </Reveal>
 
@@ -97,7 +97,7 @@ export default function Home() {
             {["Forfait inclus puis photos supplémentaires à l'unité", "Compteur d'expiration visible en permanence", "Téléchargement HD immédiat après confirmation", "Prolongation en un clic si le client manque de temps"].map((t) => (
               <li key={t} className="flex items-start gap-3">
                 <span className="mt-1.5 w-5 h-5 rounded-full bg-terracotta flex items-center justify-center shrink-0">
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#EFE6DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
+                  <svg aria-hidden="true" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#EFE6DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
                 </span>
                 {t}
               </li>

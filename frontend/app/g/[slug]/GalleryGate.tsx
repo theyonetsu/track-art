@@ -55,7 +55,7 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
   if (!gallery.locked) return <GalleryClient key={gallery.id} gallery={gallery} initialPhotos={photos} paypalClientId={paypalClientId} accessToken={token} onRefresh={token ? () => loadWithToken(token) : undefined} />;
 
   return (
-    <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6 grain">
+    <main id="contenu" className="min-h-screen bg-sand text-ink flex items-center justify-center px-6 grain">
       <form onSubmit={submit} className="w-full max-w-sm card p-10 flex flex-col gap-6 fade-up text-center">
         <Link href="/" className="font-serif text-xs tracking-[0.32em] uppercase hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
         <div className="flex flex-col gap-2">
@@ -66,7 +66,7 @@ export default function GalleryGate({ slug, initialGallery, initialPhotos, paypa
         {checking ? <p className="meta">{t.checking}</p> : (
           <>
             <input type="password" className="input text-center tracking-[0.3em]" placeholder={t.password} value={password} onChange={(e) => setPassword(e.target.value)} autoFocus required />
-            {error && <p className="text-terracotta text-sm">{error}</p>}
+            {error && <p role="alert" className="text-terracotta text-sm">{error}</p>}
             <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? t.opening : t.open}</button>
           </>
         )}

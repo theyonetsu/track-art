@@ -38,11 +38,11 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2 relative">
+    <main id="contenu" className="min-h-screen bg-sand text-ink grid grid-cols-1 lg:grid-cols-2 relative">
       <Link href="/" className="absolute top-6 left-6 z-10 label text-ink-soft hover:text-terracotta transition-colors flex items-center gap-2 lg:text-sand lg:hover:text-sand">
         <span aria-hidden="true">←</span> Accueil
       </Link>
-      <div className="hidden lg:block relative" style={{ backgroundImage: "url(/showcase/reception-bokeh.webp)", backgroundSize: "cover", backgroundPosition: "center" }}><div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(34,27,24,0) 40%, rgba(34,27,24,0.55) 100%)" }} /><p className="absolute bottom-12 left-12 right-12 font-serif italic text-3xl text-sand leading-snug">« La galerie qui donne envie d’acheter. »</p></div>
+      <div aria-hidden="true" className="hidden lg:block relative" style={{ backgroundImage: "url(/showcase/reception-bokeh.webp)", backgroundSize: "cover", backgroundPosition: "center" }}><div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(34,27,24,0) 40%, rgba(34,27,24,0.55) 100%)" }} /><p className="absolute bottom-12 left-12 right-12 font-serif italic text-3xl text-sand leading-snug">« La galerie qui donne envie d’acheter. »</p></div>
       <div className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm card p-10 flex flex-col gap-10 fade-up">
           <div className="flex flex-col gap-3 items-center text-center">
@@ -53,14 +53,14 @@ export default function AdminLogin() {
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="input" required />
               <input type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} className="input" required />
-              {error && <p className="text-terracotta text-sm text-center">{error}</p>}
+              {error && <p role="alert" className="text-terracotta text-sm text-center">{error}</p>}
               <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">{loading ? "Connexion…" : "Se connecter"}</button>
             </form>
           ) : (
             <form onSubmit={handleTotp} className="flex flex-col gap-4">
               <p className="text-sm text-ink-soft text-center">Entrez le code de votre application d’authentification.</p>
               <input type="text" inputMode="numeric" placeholder="123456" value={totp} onChange={(e) => setTotp(e.target.value)} className="input text-center tracking-[0.4em]" maxLength={6} required />
-              {error && <p className="text-terracotta text-sm text-center">{error}</p>}
+              {error && <p role="alert" className="text-terracotta text-sm text-center">{error}</p>}
               <button type="submit" disabled={loading} className="btn btn-primary w-full mt-2">{loading ? "Vérification…" : "Vérifier"}</button>
             </form>
           )}

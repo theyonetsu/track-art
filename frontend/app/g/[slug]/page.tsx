@@ -45,7 +45,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
       error: { eyebrow: 'Indisponible', title: 'Un instant…', text: 'La galerie ne répond pas pour le moment. Réessayez dans quelques minutes.' },
     }[result.status];
     return (
-      <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6">
+      <main id="contenu" className="min-h-screen bg-sand text-ink flex items-center justify-center px-6">
         <div className="text-center flex flex-col items-center gap-5 max-w-md fade-up">
           <Link href="/" className="font-serif text-sm tracking-[0.32em] uppercase hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
           <p className="eyebrow">{copy.eyebrow}</p>

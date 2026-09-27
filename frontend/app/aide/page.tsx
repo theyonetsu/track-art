@@ -51,7 +51,7 @@ export default function AidePage() {
   return (
     <div className="min-h-screen bg-sand text-ink flex flex-col grain">
       <SiteHeader />
-      <main className="px-6 md:px-20 py-16 md:py-24 flex flex-col gap-16 max-w-5xl">
+      <main id="contenu" className="px-6 md:px-20 py-16 md:py-24 flex flex-col gap-16 max-w-5xl">
         <div className="flex flex-col gap-4 fade-up">
           <BackLink className="mb-2" />
           <p className="eyebrow">Aide &amp; FAQ</p>

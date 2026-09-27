@@ -3,7 +3,7 @@ import Logo from "./components/Logo";
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6">
+    <main id="contenu" className="min-h-screen bg-sand text-ink flex items-center justify-center px-6">
       <div className="text-center flex flex-col items-center gap-5 max-w-md">
         <Logo size="sm" />
         <p className="label text-terracotta">Galerie introuvable</p>

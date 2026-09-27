@@ -67,7 +67,7 @@ export default function AdminShell({ children, title, actions }: { children: Rea
           {actions && <div className="flex gap-3">{actions}</div>}
         </div>
       )}
-      <main className="px-6 md:px-12 py-8">{children}</main>
+      <main id="contenu" className="px-6 md:px-12 py-8">{children}</main>
     </div>
   );
 }

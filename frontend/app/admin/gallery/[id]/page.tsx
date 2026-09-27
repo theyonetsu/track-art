@@ -313,7 +313,7 @@ export default function AdminGalleryPage() {
         </aside>
 
         {/* ── Colonne photos ── */}
-        <main className="flex flex-col gap-5">
+        <main id="contenu" className="flex flex-col gap-5">
           <div onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }} onDrop={onDrop} onClick={() => !uploading && fileRef.current?.click()}
             className={`card border-dashed cursor-pointer transition-all ${dragging ? "border-terracotta bg-sand-deep" : "hover:border-ink"}`}>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/tiff" multiple className="hidden" onChange={(e) => { handleFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
@@ -326,7 +326,7 @@ export default function AdminGalleryPage() {
                 </>
               ) : (
                 <>
-                  <svg className={`w-8 h-8 ${dragging ? "text-terracotta" : "text-muted"}`} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                  <svg aria-hidden="true" className={`w-8 h-8 ${dragging ? "text-terracotta" : "text-muted"}`} fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
                   <p className="font-serif text-2xl">{dragging ? "Déposez vos photos" : "Glissez-déposez vos photos ici"}</p>
                   <p className="meta">ou cliquez pour parcourir · JPEG, PNG, WEBP, HEIC, TIFF · 80 Mo par fichier · nombre de photos illimité</p>
                 </>
@@ -349,10 +349,10 @@ export default function AdminGalleryPage() {
                 <div className="absolute inset-0 flex items-center justify-center"><div className="w-5 h-5 border-2 border-line border-t-terracotta rounded-full animate-spin" /></div>
               </div>
             ))}
-            {photos.map((p) => (
+            {photos.map((p, i) => (
               <div key={p.id} className="relative aspect-square overflow-hidden group bg-sand-deep tile">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.previewUrl} alt={p.filename ?? ""} className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75" loading="lazy" />
+                <img src={p.previewUrl} alt={`Photo ${i + 1} sur ${photos.length}${p.filename ? ` — ${p.filename}` : ""}`} className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-75" loading="lazy" />
                 <div className="absolute top-2 left-2 flex gap-1.5">
                   {p.isCover && <span className="badge badge-ink !py-1 !px-1.5">Couverture</span>}
                   {p.unlocked && <span className={`badge !py-1 !px-1.5 ${p.paid ? "badge-accent" : ""}`} style={{ background: "#EFE6DA" }}>{p.paid ? "Payée" : "Incluse"}</span>}
@@ -383,7 +383,7 @@ export default function AdminGalleryPage() {
 function IconBtn({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick} title={title} aria-label={title} className="w-9 h-9 sm:w-8 sm:h-8 bg-sand/90 text-ink hover:bg-terracotta hover:text-sand flex items-center justify-center transition-colors">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
     </button>
   );
 }

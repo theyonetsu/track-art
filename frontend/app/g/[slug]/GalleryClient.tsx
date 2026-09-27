@@ -33,12 +33,16 @@ function fmtDate(d: string | null, lang: Lang = 'fr') {
 }
 
 // ─── Image protégée : fond CSS + calque, aucune balise <img> exposée ──────────
-function ProtectedImage({ src, className = '', fit = 'cover' }: { src: string; className?: string; fit?: 'cover' | 'contain' }) {
+function ProtectedImage({ src, alt, className = '', fit = 'cover' }: { src: string; alt?: string; className?: string; fit?: 'cover' | 'contain' }) {
   return (
     <div className={`relative overflow-hidden select-none ${className}`} style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()} onDragStart={(e) => e.preventDefault()}>
       <div
-        role="img"
-        aria-label=""
+        /* Une photo est du contenu, pas une décoration : sans nom accessible elle
+           n'existe pas pour un lecteur d'écran. Mais role="img" avec un nom vide
+           est pire que rien — on retire alors le rôle plutôt que de l'annoncer. */
+        role={alt ? 'img' : undefined}
+        aria-label={alt || undefined}
+        aria-hidden={alt ? undefined : true}
         className="absolute inset-0"
         style={{
           // Repli discret si l'aperçu met du temps à arriver ou ne charge pas
@@ -56,7 +60,7 @@ function ProtectedImage({ src, className = '', fit = 'cover' }: { src: string; c
 }
 
 const Check = ({ color = '#EFE6DA' }: { color?: string }) => (
-  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
+  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
 );
 
 export default function GalleryClient({ gallery, initialPhotos, paypalClientId, accessToken = '', onRefresh }: Props) {
@@ -181,7 +185,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
 
       {banner && <div className="bg-terracotta text-sand text-center py-3 px-4 fade-up"><p className="text-sm tracking-wide">{banner}</p></div>}
 
-      <main className="max-w-7xl mx-auto px-5 pt-2 pb-40">
+      <main id="contenu" lang={lang} className="max-w-7xl mx-auto px-5 pt-2 pb-40">
         {/* Compteur + expiration */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 px-5 py-4 card">
           <p className="text-sm">
@@ -211,9 +215,9 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
-              {unlockedPhotos.map((photo) => (
+              {unlockedPhotos.map((photo, i) => (
                 <div key={photo.id} className="relative group aspect-[4/5] overflow-hidden tile bg-sand-deep">
-                  <ProtectedImage src={photo.watermarkUrl} className="w-full h-full" />
+                  <ProtectedImage src={photo.watermarkUrl} alt={t.photoAlt(i + 1, unlockedPhotos.length)} className="w-full h-full" />
                   {photo.originalUrl && (
                     <>
                       {/* Souris : recouvrement au survol */}
@@ -228,7 +232,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                         aria-label={t.download}
                         className="touch-only absolute bottom-2 left-2 w-11 h-11 items-center justify-center bg-sand/95 text-ink"
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16" /></svg>
+                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16" /></svg>
                       </a>
                     </>
                   )}
@@ -254,22 +258,30 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 reveal-stagger is-visible">
-              {selectablePhotos.map((photo) => {
+              {selectablePhotos.map((photo, i) => {
                 const isSelected = selected.has(photo.id);
                 const idx = selectedList.findIndex((p) => p.id === photo.id);
                 const isExtra = isSelected && idx >= includedRemaining;
+                const rang = i + 1;
+                const total = selectablePhotos.length;
                 return (
-                  <button key={photo.id} onClick={() => toggle(photo.id)} onDoubleClick={() => setLightbox(photo)} aria-pressed={isSelected} aria-label={isSelected ? t.selected : t.select}
-                    className={`relative aspect-[4/5] overflow-hidden group outline-none focus-visible:ring-2 focus-visible:ring-terracotta cursor-pointer bg-sand-deep tile ${isSelected ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-sand' : ''}`}>
-                    <ProtectedImage src={photo.watermarkUrl} className={`w-full h-full transition-all duration-200 ${isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'}`} />
-                    <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-terracotta border-terracotta' : 'bg-ink/30 border-sand/80 opacity-0 group-hover:opacity-100 reveal-on-hover'}`}>{isSelected && <Check />}</div>
-                    <span role="button" tabIndex={-1} aria-label={t.zoom} onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="reveal-on-hover absolute bottom-2 right-2 w-11 h-11 sm:w-9 sm:h-9 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
-                    </span>
+                  /* La loupe était un <span role="button" tabIndex={-1}> imbriqué dans un
+                     <button> : HTML invalide, et inatteignable au clavier. Deux vrais
+                     boutons côte à côte dans un conteneur neutre règlent les deux. */
+                  <div key={photo.id} className={`relative aspect-[4/5] overflow-hidden group bg-sand-deep tile ${isSelected ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-sand' : ''}`}>
+                    <button type="button" onClick={() => toggle(photo.id)} onDoubleClick={() => setLightbox(photo)} aria-pressed={isSelected}
+                      aria-label={isSelected ? t.unselectPhoto(rang, total) : t.selectPhoto(rang, total)}
+                      className="absolute inset-0 w-full h-full cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-terracotta focus-visible:ring-inset">
+                      <ProtectedImage src={photo.watermarkUrl} alt={t.photoAlt(rang, total)} className={`w-full h-full transition-all duration-200 ${isSelected ? 'brightness-90 scale-[1.03]' : 'group-hover:brightness-95'}`} />
+                    </button>
+                    <div aria-hidden="true" className={`pointer-events-none absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-terracotta border-terracotta' : 'bg-ink/30 border-sand/80 opacity-0 group-hover:opacity-100 reveal-on-hover'}`}>{isSelected && <Check />}</div>
+                    <button type="button" aria-label={t.zoomPhoto(rang)} onClick={(e) => { e.stopPropagation(); setLightbox(photo); }} className="reveal-on-hover absolute bottom-2 right-2 w-11 h-11 sm:w-9 sm:h-9 bg-sand/90 text-ink flex items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-ink hover:text-sand">
+                      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3M11 8v6M8 11h6" /></svg>
+                    </button>
                     {(isExtra || (!isSelected && includedRemaining - selectedCount <= 0)) && photo.price > 0 && (
-                      <div className={`absolute bottom-2 left-2 badge transition-opacity ${isExtra ? 'opacity-100 badge-accent' : 'opacity-0 group-hover:opacity-100'}`} style={{ background: '#EFE6DA' }}>+{photo.price} €</div>
+                      <div className={`pointer-events-none absolute bottom-2 left-2 badge transition-opacity ${isExtra ? 'opacity-100 badge-accent' : 'opacity-0 group-hover:opacity-100'}`} style={{ background: '#EFE6DA' }}>+{photo.price} €</div>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -316,7 +328,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                   return res.json();
                 }} onDone={() => onSelectionDone(true)} />
               )}
-              {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+              {!methods.card && !methods.paypal && <p role="alert" className="text-terracotta text-sm text-center">{t.noPay}</p>}
             </div>
           ) : (
             <FreeConfirm t={t} slug={gallery.slug} ids={Array.from(selected)} headers={headers} onDone={() => onSelectionDone(false)} />
@@ -341,7 +353,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                 return res.json();
               }} onDone={onExtended} />
             )}
-            {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+            {!methods.card && !methods.paypal && <p role="alert" className="text-terracotta text-sm text-center">{t.noPay}</p>}
           </div>
         </Drawer>
       )}
@@ -367,22 +379,22 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
                 return res.json();
               }} onDone={onAllDone} />
             )}
-            {!methods.card && !methods.paypal && <p className="text-terracotta text-sm text-center">{t.noPay}</p>}
+            {!methods.card && !methods.paypal && <p role="alert" className="text-terracotta text-sm text-center">{t.noPay}</p>}
           </div>
         </Drawer>
       )}
 
       {lightbox && (
-        <div className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center fade-in" onClick={() => setLightbox(null)}>
+        <div role="dialog" aria-modal="true" aria-label={t.photoAlt(lightboxIndex + 1, lightboxList.length)} className="fixed inset-0 z-50 bg-ink/95 flex items-center justify-center fade-in" onClick={() => setLightbox(null)}>
           {lightboxList.length > 1 && (
             <>
-              <button className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }} aria-label={t.prev}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></button>
-              <button className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(1); }} aria-label={t.next}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg></button>
+              <button className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(-1); }} aria-label={t.prev}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg></button>
+              <button className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand border border-sand/20 hover:border-sand/60 transition-colors" onClick={(e) => { e.stopPropagation(); stepLightbox(1); }} aria-label={t.next}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m9 6 6 6-6 6" /></svg></button>
               <span className="absolute top-5 left-1/2 -translate-x-1/2 label text-sand/60 num">{lightboxIndex + 1} / {lightboxList.length}</span>
             </>
           )}
           <button className="absolute top-3 right-3 w-11 h-11 flex items-center justify-center text-sand/70 hover:text-sand text-3xl leading-none" onClick={() => setLightbox(null)} aria-label={t.close}>×</button>
-          <div onClick={(e) => e.stopPropagation()} className="h-[82vh] w-[86vw] md:w-[80vw]"><ProtectedImage src={lightbox.watermarkUrl} fit="contain" className="h-full w-full" /></div>
+          <div onClick={(e) => e.stopPropagation()} className="h-[82vh] w-[86vw] md:w-[80vw]"><ProtectedImage src={lightbox.watermarkUrl} alt={t.photoAlt(lightboxIndex + 1, lightboxList.length)} fit="contain" className="h-full w-full" /></div>
           {!lightbox.unlocked && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
               <button onClick={(e) => { e.stopPropagation(); toggle(lightbox.id); }} className={`btn ${selected.has(lightbox.id) ? 'btn-accent' : 'border-sand/60 text-sand hover:border-sand'}`}>{selected.has(lightbox.id) ? t.selected : t.select}</button>
@@ -441,7 +453,7 @@ function CardButton({ t, kind, galleryId, photoIds, headers, amount }: { t: Dict
         {loading ? t.redirecting : `${t.payCard} · ${amount} €`}
       </button>
       <p className="help text-center">{t.cardHint}</p>
-      {error && <p className="text-terracotta text-sm text-center">{error}</p>}
+      {error && <p role="alert" className="text-terracotta text-sm text-center">{error}</p>}
     </div>
   );
 }
@@ -476,7 +488,7 @@ function FreeConfirm({ t, slug, ids, headers, onDone }: { t: Dict; slug: string;
   }
   return (
     <>
-      {error && <p className="text-terracotta text-sm text-center mb-3">{error}</p>}
+      {error && <p role="alert" className="text-terracotta text-sm text-center mb-3">{error}</p>}
       <button onClick={confirm} disabled={loading} className="btn btn-primary w-full">{loading ? t.confirming : t.confirmSel}</button>
     </>
   );
@@ -546,7 +558,7 @@ function PayPalButtons({ t, lang, paypalClientId, create, onDone }: { t: Dict; l
   return (
     <div>
       {status === 'loading' && <div className="h-11 bg-sand-deep animate-pulse" />}
-      {status === 'error' && <div className="text-terracotta text-sm text-center py-3">{msg}</div>}
+      {status === 'error' && <div role="alert" className="text-terracotta text-sm text-center py-3">{msg}</div>}
       {status === 'processing' && <div className="label text-muted text-center py-3">{t.processing}</div>}
       <div ref={ref} className={status === 'loading' || status === 'processing' ? 'invisible h-0' : ''} />
       <p className="text-center text-xs text-muted mt-4">{t.secure}</p>

@@ -61,7 +61,7 @@ export default function HeroStack() {
               transition: "transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            <div style={{ aspectRatio: `${p.w} / ${p.h}`, backgroundImage: `url(${p.src})`, backgroundSize: "cover", backgroundPosition: "center" }} className="relative overflow-hidden" />
+            <div aria-hidden="true" style={{ aspectRatio: `${p.w} / ${p.h}`, backgroundImage: `url(${p.src})`, backgroundSize: "cover", backgroundPosition: "center" }} className="relative overflow-hidden" />
           </div>
         ))}
 

@@ -40,7 +40,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${cormorant.variable} ${jost.variable} ${mono.variable}`}>
-      <body className="bg-sand text-ink antialiased"><ScrollFx /><NavProgress />{children}</body>
+      <body className="bg-sand text-ink antialiased">
+        {/* Sans ce lien, un utilisateur au clavier doit traverser tout l'en-tête
+            à chaque page avant d'atteindre le contenu. */}
+        <a href="#contenu" className="skip-link">Aller au contenu</a>
+        <ScrollFx />
+        <NavProgress />
+        {children}
+      </body>
     </html>
   );
 }

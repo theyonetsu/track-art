@@ -31,7 +31,7 @@ export default function PhoneMock() {
             <div key={i} className="relative tile" style={{ height: t.h, background: t.bg, outline: t.sel ? "2px solid #9E4F37" : "none", outlineOffset: -2 }}>
               {t.sel && (
                 <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-terracotta flex items-center justify-center">
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#EFE6DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
+                  <svg aria-hidden="true" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#EFE6DA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6.5 4.8 9.2 10 3.5" /></svg>
                 </span>
               )}
             </div>

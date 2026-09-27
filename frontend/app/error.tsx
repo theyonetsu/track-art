@@ -7,7 +7,7 @@ import Logo from "./components/Logo";
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => { console.error(error); }, [error]);
   return (
-    <main className="min-h-screen bg-sand text-ink flex items-center justify-center px-6 grain">
+    <main id="contenu" className="min-h-screen bg-sand text-ink flex items-center justify-center px-6 grain">
       <div className="text-center flex flex-col items-center gap-5 max-w-md">
         <Logo size="sm" />
         <p className="label text-terracotta">Une erreur est survenue</p>
