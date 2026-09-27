@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import { SITE } from "../lib/legal";
 
 export default function SiteFooter() {
   return (
@@ -19,10 +20,12 @@ export default function SiteFooter() {
           <Link href="/admin/login" className="hover:text-terracotta transition-colors">Connexion</Link>
           <Link href="/confidentialite" className="hover:text-terracotta transition-colors">Confidentialité</Link>
           <Link href="/cgv" className="hover:text-terracotta transition-colors">Conditions générales</Link>
+          <Link href="/cookies" className="hover:text-terracotta transition-colors">Cookies</Link>
+          <Link href="/remboursement" className="hover:text-terracotta transition-colors">Remboursements</Link>
         </nav>
       </div>
       <div className="px-6 md:px-20 py-5 border-t border-line/70 flex flex-col sm:flex-row justify-between gap-2 text-xs text-muted">
-        <span>© {new Date().getFullYear()} Track.Art · trak.art</span>
+        <span>© {new Date().getFullYear()} {SITE.nom} · {SITE.domaine}</span>
         <span>Fait pour les photographes, par des photographes.</span>
       </div>
     </footer>

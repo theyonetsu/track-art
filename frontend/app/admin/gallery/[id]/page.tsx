@@ -205,15 +205,15 @@ export default function AdminGalleryPage() {
           <Section title="Informations" hint="Visibles par le client en haut de sa galerie.">
             <Field label="Titre"><input className="input" value={form.title ?? ""} onChange={(e) => setF("title", e.target.value)} /></Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Nom du client"><input className="input" value={form.clientName ?? ""} onChange={(e) => setF("clientName", e.target.value)} /></Field>
+              <Field label="Nom du client (facultatif)"><input className="input" value={form.clientName ?? ""} onChange={(e) => setF("clientName", e.target.value)} /></Field>
               <Field label="Date de séance"><input type="date" className="input num" value={(form.eventDate as string) ?? ""} onChange={(e) => setF("eventDate", e.target.value)} /></Field>
             </div>
             <Field label="Message au client" hint="Quelques mots affichés sous le titre (remerciement, consignes, délai de livraison…).">
               <textarea className="input min-h-[96px]" value={form.message ?? ""} onChange={(e) => setF("message", e.target.value)} maxLength={600} placeholder="Merci pour cette belle journée ! Choisissez vos photos préférées…" />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Email du client"><input type="email" className="input" value={form.clientEmail ?? ""} onChange={(e) => setF("clientEmail", e.target.value)} /></Field>
-              <Field label="Téléphone"><input type="tel" className="input" value={form.clientPhone ?? ""} onChange={(e) => setF("clientPhone", e.target.value)} /></Field>
+              <Field label="Email du client (facultatif — sert à lui envoyer le lien et les rappels)"><input type="email" className="input" value={form.clientEmail ?? ""} onChange={(e) => setF("clientEmail", e.target.value)} /></Field>
+              <Field label="Téléphone (facultatif — pour votre usage, jamais utilisé par Track.Art)"><input type="tel" className="input" value={form.clientPhone ?? ""} onChange={(e) => setF("clientPhone", e.target.value)} /></Field>
             </div>
             <Field label="Langue de la galerie" hint="Interface du client : textes, boutons, dates, PayPal.">
               <select className="input" value={(form.languages as string[] | undefined)?.[0] ?? "fr"} onChange={(e) => setF("languages", [e.target.value])}>

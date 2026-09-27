@@ -306,6 +306,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           </div>
           {total > 0 ? (
             <div className="flex flex-col gap-4">
+              <ConsentNotice t={t} />
               {methods.card && <CardButton t={t} kind="photos" galleryId={gallery.id} photoIds={Array.from(selected)} headers={headers} amount={total} />}
               {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
               {methods.paypal && (
@@ -330,6 +331,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.extension}</span><span className="num">{gallery.extensionPrice} €</span></div>
           </div>
           <div className="flex flex-col gap-4">
+            <ConsentNotice t={t} />
             {methods.card && <CardButton t={t} kind="extension" galleryId={gallery.id} headers={headers} amount={gallery.extensionPrice} />}
             {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
             {methods.paypal && (
@@ -355,6 +357,7 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
             <div className="flex justify-between text-base text-ink border-t border-line pt-2 font-medium"><span>{t.allLine(selectablePhotos.length)}</span><span className="num">{gallery.allPhotosPrice} €</span></div>
           </div>
           <div className="flex flex-col gap-4">
+            <ConsentNotice t={t} />
             {methods.card && <CardButton t={t} kind="all" galleryId={gallery.id} headers={headers} amount={gallery.allPhotosPrice!} />}
             {methods.card && methods.paypal && <p className="meta text-center">{t.orPaypal}</p>}
             {methods.paypal && (
@@ -395,10 +398,18 @@ export default function GalleryClient({ gallery, initialPhotos, paypalClientId, 
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="tap label text-muted hover:text-terracotta transition-colors inline-flex items-center gap-2">
             <span aria-hidden>↑</span> {t.backTop}
           </button>
-          <p className="meta text-center">
-            {t.poweredBy}{' '}
-            <Link href="/" className="font-serif tracking-[0.24em] uppercase text-ink hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-x-5 gap-y-2">
+            {/* Un client qui achète ici doit pouvoir atteindre les conditions et la politique de remboursement sans quitter sa galerie. */}
+            <nav className="flex items-center gap-x-4 gap-y-1 flex-wrap justify-center meta">
+              <Link href="/cgv" className="hover:text-terracotta transition-colors">{t.legalTerms}</Link>
+              <Link href="/remboursement" className="hover:text-terracotta transition-colors">{t.legalRefund}</Link>
+              <Link href="/confidentialite" className="hover:text-terracotta transition-colors">{t.legalPrivacy}</Link>
+            </nav>
+            <p className="meta text-center">
+              {t.poweredBy}{' '}
+              <Link href="/" className="font-serif tracking-[0.24em] uppercase text-ink hover:text-terracotta transition-colors">Track<span className="text-terracotta">.</span>Art</Link>
+            </p>
+          </div>
         </div>
       </footer>
     </div>
@@ -468,6 +479,22 @@ function FreeConfirm({ t, slug, ids, headers, onDone }: { t: Dict; slug: string;
       {error && <p className="text-terracotta text-sm text-center mb-3">{error}</p>}
       <button onClick={confirm} disabled={loading} className="btn btn-primary w-full">{loading ? t.confirming : t.confirmSel}</button>
     </>
+  );
+}
+
+/**
+ * Mention obligatoire avant tout paiement : l'exception au droit de rétractation
+ * pour un contenu numérique livré immédiatement (art. L221-28 13° du Code de la
+ * consommation) n'est valable que si le client l'a demandée expressément ET
+ * reconnu qu'il perd ce droit. Sans cette phrase affichée avant la validation,
+ * l'exception tombe et tout achat reste rétractable 14 jours.
+ */
+function ConsentNotice({ t }: { t: Dict }) {
+  return (
+    <p className="help text-center">
+      {t.consent}{' '}
+      <a href="/remboursement" target="_blank" rel="noreferrer noopener" className="link-underline">{t.consentLink}</a>
+    </p>
   );
 }
 

@@ -1,6 +1,19 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
+/**
+ * Les journaux d'un hébergeur sont conservés et consultables : y écrire une
+ * adresse email en clair, c'est enregistrer une donnée personnelle sans
+ * nécessité. On garde juste de quoi reconnaître une adresse pendant un
+ * dépannage : « camille.durand@studio.fr » devient « c***d@studio.fr ».
+ */
+function masque(email: string) {
+  const [local, domaine] = String(email).split('@');
+  if (!domaine) return '***';
+  const visible = local.length > 1 ? `${local[0]}***${local[local.length - 1]}` : `${local}***`;
+  return `${visible}@${domaine}`;
+}
+
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
@@ -60,9 +73,9 @@ export class EmailService implements OnModuleInit {
           <p style="color:#888;font-size:14px;">Ce lien est personnel. La galerie reste ouverte pendant une durée limitée à partir de votre première visite.</p>
         `),
       });
-      this.logger.log(`Lien galerie envoyé à ${to}`);
+      this.logger.log(`Lien galerie envoyé à ${masque(to)}`);
     } catch (err) {
-      this.logger.error(`Échec envoi email à ${to} : ${err.message}`);
+      this.logger.error(`Échec envoi email à ${masque(to)} : ${err.message}`);
     }
   }
 
@@ -85,9 +98,9 @@ export class EmailService implements OnModuleInit {
           </p>
         `),
       });
-      this.logger.log(`Avertissement expiration envoyé à ${to}`);
+      this.logger.log(`Avertissement expiration envoyé à ${masque(to)}`);
     } catch (err) {
-      this.logger.error(`Échec envoi expiration à ${to} : ${err.message}`);
+      this.logger.error(`Échec envoi expiration à ${masque(to)} : ${err.message}`);
     }
   }
 
@@ -108,9 +121,9 @@ export class EmailService implements OnModuleInit {
           </p>
         `),
       });
-      this.logger.log(`Confirmation paiement envoyée à ${to}`);
+      this.logger.log(`Confirmation paiement envoyée à ${masque(to)}`);
     } catch (err) {
-      this.logger.error(`Échec envoi confirmation à ${to} : ${err.message}`);
+      this.logger.error(`Échec envoi confirmation à ${masque(to)} : ${err.message}`);
     }
   }
 

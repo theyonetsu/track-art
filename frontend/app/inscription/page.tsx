@@ -12,10 +12,18 @@ export default function Inscription() {
   const [loading, setLoading] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
 
+  /** Minimisation : un champ facultatif laissé vide n'est pas envoyé, donc pas enregistré. */
+  function payload() {
+    const out: Record<string, string> = { name: form.name.trim(), email: form.email.trim(), password: form.password };
+    if (form.studioName.trim()) out.studioName = form.studioName.trim();
+    if (form.phone.trim()) out.phone = form.phone.trim();
+    return out;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError("");
     try {
-      const res = await fetch(`${API}/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch(`${API}/auth/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload()) });
       const data = await res.json();
       if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message.join(", ") : data.message ?? "Erreur");
       localStorage.setItem("token", data.access_token);
@@ -46,7 +54,7 @@ export default function Inscription() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="flex flex-col gap-1.5"><span className="field-label">Prénom et nom</span><input className="input" value={form.name} onChange={set("name")} placeholder="Camille Durand" required /></label>
-            <label className="flex flex-col gap-1.5"><span className="field-label">Nom du studio</span><input className="input" value={form.studioName} onChange={set("studioName")} placeholder="Studio Lumière" /></label>
+            <label className="flex flex-col gap-1.5"><span className="field-label">Nom du studio (optionnel)</span><input className="input" value={form.studioName} onChange={set("studioName")} placeholder="Studio Lumière" /></label>
           </div>
           <label className="flex flex-col gap-1.5"><span className="field-label">Email</span><input type="email" className="input" value={form.email} onChange={set("email")} placeholder="vous@studio.fr" required /></label>
           <label className="flex flex-col gap-1.5"><span className="field-label">Téléphone (optionnel)</span><input type="tel" className="input" value={form.phone} onChange={set("phone")} placeholder="+33 6 00 00 00 00" /></label>
